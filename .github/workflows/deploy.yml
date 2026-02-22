@@ -48,12 +48,17 @@ jobs:
           name: dist
           path: dist/
 
+      - name: Verify secrets are available
+        run: |
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ]; then echo "::error::CLOUDFLARE_API_TOKEN is empty — check GitHub environment secrets"; exit 1; fi
+          if [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then echo "::error::CLOUDFLARE_ACCOUNT_ID is empty — check GitHub environment secrets"; exit 1; fi
+          echo "Secrets are set"
+
+      - name: Install Wrangler
+        run: npm install -g wrangler
+
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=personal-website
+        run: wrangler pages deploy dist --project-name=personal-website
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
