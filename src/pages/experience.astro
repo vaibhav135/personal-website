@@ -54,6 +54,10 @@ let lineNr = 1;
     </div>
     <div class="code-line anim-line" style="--i: 2">
       <span class="line-nr">{lineNr++}</span>
+      <span class="line-content"><span class="syn-comment">-- </span><a href="/vaibhav-resume.pdf" target="_blank" rel="noopener" class="resume-link"><span class="syn-comment">:w ~/resume.pdf</span><span class="resume-download"> [download]</span></a></span>
+    </div>
+    <div class="code-line anim-line" style="--i: 3">
+      <span class="line-nr">{lineNr++}</span>
       <span class="line-content"></span>
     </div>
 
@@ -194,3 +198,23 @@ let lineNr = 1;
     </div>
   </div>
 </NeoVimLayout>
+
+<style>
+  .resume-link {
+    text-decoration: none;
+    transition: opacity 0.15s ease;
+  }
+
+  .resume-link:hover {
+    text-decoration: none;
+  }
+
+  .resume-download {
+    color: var(--green);
+    font-size: 0.85em;
+  }
+
+  .resume-link:hover .resume-download {
+    text-decoration: underline;
+  }
+</style>

@@ -133,11 +133,12 @@
     'q!':      { desc: 'Force quit',        msg: 'Thanks for visiting!', type: 'success' },
     'wq':      { desc: 'Write and quit',    msg: '"portfolio" written. Bookmarked!', type: 'success' },
     'w':       { desc: 'Write buffer',      msg: '"portfolio" written', type: 'success' },
-    'help':    { desc: 'Show help',         msg: ':q :wq :home :alpha :help :version :source — try them!' },
+    'help':    { desc: 'Show help',         msg: ':q :wq :home :resume :help :version :source — try them!' },
     'version': { desc: 'Show version',      msg: 'NVIM v0.10.0 — powered by Astro + Cloudflare' },
     'source':  { desc: 'View source code',  msg: 'github.com/vaibhav135/personal-website', type: 'success' },
     'home':    { desc: 'Go to dashboard',   msg: 'Navigating to dashboard...', type: 'success', navigate: '/' },
     'alpha':   { desc: 'Go to dashboard',   msg: 'Navigating to dashboard...', type: 'success', navigate: '/' },
+    'resume':  { desc: 'Download resume',   msg: 'Opening resume...', type: 'success' },
   };
 
   const CMD_KEYS = Object.keys(COMMANDS);
@@ -213,6 +214,11 @@
       // Navigate commands (:home, :alpha)
       if (result?.navigate) {
         setTimeout(() => { window.location.href = result.navigate!; }, 400);
+      }
+
+      // Resume download (:resume)
+      if (cmd === 'resume') {
+        setTimeout(() => { window.open('/vaibhav-resume.pdf', '_blank'); }, 400);
       }
     }
 
