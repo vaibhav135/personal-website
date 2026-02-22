@@ -76,31 +76,31 @@ let lineNr = 1;
         <>
           <div class="code-line anim-line" style={`--i: ${baseDelay}`}>
             <span class="line-nr">{lineNr++}</span>
-            <span class="line-content">  <span class="syn-punct">{'{'}</span></span>
+            <span class="line-content">{'  '}<span class="syn-punct">{'{'}</span></span>
           </div>
           <div class="code-line anim-line" style={`--i: ${baseDelay + 1}`}>
             <span class="line-nr">{lineNr++}</span>
-            <span class="line-content">    <span class="syn-property">company</span> <span class="syn-operator">=</span> <span class="syn-string">"{exp.company}"</span><span class="syn-punct">,</span></span>
+            <span class="line-content">{'    '}<span class="syn-property">company</span> <span class="syn-operator">=</span> <span class="syn-string">"{exp.company}"</span><span class="syn-punct">,</span></span>
           </div>
           <div class="code-line anim-line" style={`--i: ${baseDelay + 2}`}>
             <span class="line-nr">{lineNr++}</span>
-            <span class="line-content">    <span class="syn-property">role</span> <span class="syn-operator">=</span> <span class="syn-string">"{exp.role}"</span><span class="syn-punct">,</span></span>
+            <span class="line-content">{'    '}<span class="syn-property">role</span> <span class="syn-operator">=</span> <span class="syn-string">"{exp.role}"</span><span class="syn-punct">,</span></span>
           </div>
           <div class="code-line anim-line" style={`--i: ${baseDelay + 3}`}>
             <span class="line-nr">{lineNr++}</span>
-            <span class="line-content">    <span class="syn-property">period</span> <span class="syn-operator">=</span> <span class="syn-string">"{exp.period}"</span><span class="syn-punct">,</span></span>
+            <span class="line-content">{'    '}<span class="syn-property">period</span> <span class="syn-operator">=</span> <span class="syn-string">"{exp.period}"</span><span class="syn-punct">,</span></span>
           </div>
           <div class="code-line anim-line" style={`--i: ${baseDelay + 4}`}>
             <span class="line-nr">{lineNr++}</span>
-            <span class="line-content">    <span class="syn-property">description</span> <span class="syn-operator">=</span> <span class="syn-string">"{exp.description}"</span><span class="syn-punct">,</span></span>
+            <span class="line-content">{'    '}<span class="syn-property">description</span> <span class="syn-operator">=</span> <span class="syn-string">"{exp.description}"</span><span class="syn-punct">,</span></span>
           </div>
           <div class="code-line anim-line" style={`--i: ${baseDelay + 5}`}>
             <span class="line-nr">{lineNr++}</span>
-            <span class="line-content">    <span class="syn-property">tech</span> <span class="syn-operator">=</span> <span class="syn-punct">{'{'}</span> {exp.tech.map((t, i) => <><span class="syn-string">"{t}"</span>{i < exp.tech.length - 1 ? <span class="syn-punct">, </span> : ''}</>)} <span class="syn-punct">{'}'}</span><span class="syn-punct">,</span></span>
+            <span class="line-content">{'    '}<span class="syn-property">tech</span> <span class="syn-operator">=</span> <span class="syn-punct">{'{'}</span> {exp.tech.map((t, i) => <><span class="syn-string">"{t}"</span>{i < exp.tech.length - 1 ? <span class="syn-punct">, </span> : ''}</>)} <span class="syn-punct">{'}'}</span><span class="syn-punct">,</span></span>
           </div>
           <div class="code-line anim-line" style={`--i: ${baseDelay + 6}`}>
             <span class="line-nr">{lineNr++}</span>
-            <span class="line-content">  <span class="syn-punct">{'}'}</span><span class="syn-punct">,</span></span>
+            <span class="line-content">{'  '}<span class="syn-punct">{'}'}</span><span class="syn-punct">,</span></span>
           </div>
         </>
       );
@@ -135,7 +135,7 @@ let lineNr = 1;
         <>
           <div class="code-line anim-line" style={`--i: ${d}`}>
             <span class="line-nr">{lineNr++}</span>
-            <span class="line-content">  <span class="syn-punct">{'{'}</span> <span class="syn-property">project</span> <span class="syn-operator">=</span> <span class="syn-string">"{os.project}"</span><span class="syn-punct">,</span> <span class="syn-property">work</span> <span class="syn-operator">=</span> <span class="syn-string">"{os.contribution}"</span> <span class="syn-punct">{'}'}</span><span class="syn-punct">,</span></span>
+            <span class="line-content">{'  '}<span class="syn-punct">{'{'}</span> <span class="syn-property">project</span> <span class="syn-operator">=</span> <span class="syn-string">"{os.project}"</span><span class="syn-punct">,</span> <span class="syn-property">work</span> <span class="syn-operator">=</span> <span class="syn-string">"{os.contribution}"</span> <span class="syn-punct">{'}'}</span><span class="syn-punct">,</span></span>
           </div>
         </>
       );
@@ -169,7 +169,7 @@ let lineNr = 1;
       return (
         <div class="code-line anim-line" style={`--i: ${d}`}>
           <span class="line-nr">{lineNr++}</span>
-          <span class="line-content">  <span class="syn-string">"{skill}"</span><span class="syn-punct">,</span></span>
+          <span class="line-content">{'  '}<span class="syn-string">"{skill}"</span><span class="syn-punct">,</span></span>
         </div>
       );
     })}
