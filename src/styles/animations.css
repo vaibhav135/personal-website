@@ -78,3 +78,25 @@
   animation: fade-in-up 0.4s ease forwards;
   animation-delay: calc(var(--i, 0) * 80ms);
 }
+
+/* ---- Reduced Motion ---- */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .anim-line,
+  .anim-fade-up,
+  .nvim__tilde-line {
+    opacity: 1;
+  }
+
+  .cursor-block {
+    animation: none;
+    opacity: 1;
+  }
+}

@@ -127,6 +127,13 @@ const filetypeColor: Record<string, string> = {
     background: var(--bg-dark);
   }
 
+  @media (max-width: 768px) {
+    .tabline__tab,
+    .tabline__home {
+      min-height: 44px;
+    }
+  }
+
   @media (max-width: 480px) {
     .tabline__tab {
       padding: 0.4rem 0.6rem;

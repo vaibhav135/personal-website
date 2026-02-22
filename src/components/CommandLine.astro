@@ -292,6 +292,15 @@
       setTimeout(hideMenu, 150);
     }, { signal });
 
+    // Tap-to-focus for mobile (: key doesn't work on mobile keyboards)
+    const cmdline = document.querySelector<HTMLDivElement>('.cmdline');
+    if (cmdline) {
+      cmdline.addEventListener('click', (e) => {
+        if ((e.target as HTMLElement).closest('.cmdline__menu-item')) return;
+        input.focus();
+      }, { signal });
+    }
+
     // Clean up on next page load
     document.addEventListener('astro:before-preparation', () => {
       controller.abort();
