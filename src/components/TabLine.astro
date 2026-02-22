@@ -17,6 +17,7 @@ const filetypeColor: Record<string, string> = {
 ---
 
 <nav class="tabline" aria-label="Page navigation">
+  <a href="/" class="tabline__home" aria-label="Home">nvim</a>
   {navItems.map((item) => (
     <a
       href={item.href}
@@ -100,6 +101,25 @@ const filetypeColor: Record<string, string> = {
 
   .tabline__tab:hover .tabline__close {
     opacity: 0.5;
+  }
+
+  .tabline__home {
+    display: flex;
+    align-items: center;
+    padding: 0.45rem 0.75rem;
+    color: var(--green);
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-decoration: none;
+    border-right: 1px solid var(--current-line);
+    background: var(--bg-dark);
+    white-space: nowrap;
+    transition: color 0.15s ease;
+  }
+
+  .tabline__home:hover {
+    color: var(--purple);
+    text-decoration: none;
   }
 
   .tabline__fill {

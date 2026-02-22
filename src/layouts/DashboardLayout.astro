@@ -1,0 +1,67 @@
+---
+import '../styles/global.css';
+import StatusLine from '../components/StatusLine.astro';
+import CommandLine from '../components/CommandLine.astro';
+import { siteConfig } from '../data/site';
+import { ClientRouter } from 'astro:transitions';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const {
+  title,
+  description = siteConfig.description,
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="generator" content={Astro.generator} />
+
+    <meta property="og:title" content={`${title} | ${siteConfig.name}`} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={Astro.url.href} />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
+
+    <title>{title} | {siteConfig.name}</title>
+    <ClientRouter />
+  </head>
+  <body>
+    <div class="nvim nvim--dash">
+      <main class="dash-main">
+        <slot />
+      </main>
+      <StatusLine filename="[Alpha]" filetype="dashboard" />
+      <CommandLine />
+    </div>
+  </body>
+</html>
+
+<style>
+  .nvim--dash {
+    grid-template-rows: 1fr auto auto;
+  }
+
+  .dash-main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+    padding: 2rem;
+  }
+</style>

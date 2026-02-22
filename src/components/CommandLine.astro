@@ -1,9 +1,11 @@
 ---
 // CommandLine — Easter egg command input at the bottom of the editor.
 // Press : (colon) anywhere on the page to focus. Escape to dismiss.
+// Typing shows a Neovim-style wildmenu with matching commands.
 ---
 
 <div class="cmdline">
+  <div class="cmdline__menu" aria-label="Command suggestions"></div>
   <span class="cmdline__prompt" aria-hidden="true">:</span>
   <input
     type="text"
@@ -26,6 +28,7 @@
     min-height: 1.5rem;
     border-top: 1px solid var(--current-line);
     gap: 0.1rem;
+    position: relative;
   }
 
   .cmdline__prompt {
@@ -66,26 +69,154 @@
   .cmdline__msg--success {
     color: var(--green);
   }
+
+  /* ---- Wildmenu / Suggestions Popup ---- */
+
+  .cmdline__menu {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg-dark);
+    border: 1px solid var(--current-line);
+    border-bottom: none;
+    max-height: 12rem;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    z-index: 50;
+  }
+
+  .cmdline__menu--open {
+    display: block;
+  }
+
+  .cmdline__menu-item {
+    display: flex;
+    align-items: center;
+    padding: 0.3rem 0.75rem;
+    gap: 1rem;
+    cursor: pointer;
+    transition: background 0.08s ease;
+  }
+
+  .cmdline__menu-item:hover {
+    background: var(--current-line);
+  }
+
+  .cmdline__menu-item--active {
+    background: var(--current-line);
+  }
+
+  .cmdline__menu-cmd {
+    color: var(--green);
+    font-weight: 600;
+    min-width: 8ch;
+  }
+
+  .cmdline__menu-desc {
+    color: var(--comment);
+    font-size: 0.78rem;
+  }
 </style>
 
 <script>
-  const COMMANDS: Record<string, { msg: string; type?: 'error' | 'success' }> = {
-    'q':       { msg: 'E37: No write since last change (add ! to override)', type: 'error' },
-    'q!':      { msg: 'Thanks for visiting!', type: 'success' },
-    'wq':      { msg: '"portfolio" written. Bookmarked!', type: 'success' },
-    'w':       { msg: '"portfolio" written', type: 'success' },
-    'help':    { msg: ':q :wq :help :version :source — try them!' },
-    'version': { msg: 'NVIM v0.10.0 — powered by Astro + Cloudflare' },
-    'source':  { msg: 'github.com/vaibhav135/personal-website', type: 'success' },
+  interface Command {
+    desc: string;
+    msg: string;
+    type?: 'error' | 'success';
+    navigate?: string;
+  }
+
+  const COMMANDS: Record<string, Command> = {
+    'q':       { desc: 'Quit',              msg: 'E37: No write since last change (add ! to override)', type: 'error' },
+    'q!':      { desc: 'Force quit',        msg: 'Thanks for visiting!', type: 'success' },
+    'wq':      { desc: 'Write and quit',    msg: '"portfolio" written. Bookmarked!', type: 'success' },
+    'w':       { desc: 'Write buffer',      msg: '"portfolio" written', type: 'success' },
+    'help':    { desc: 'Show help',         msg: ':q :wq :home :alpha :help :version :source — try them!' },
+    'version': { desc: 'Show version',      msg: 'NVIM v0.10.0 — powered by Astro + Cloudflare' },
+    'source':  { desc: 'View source code',  msg: 'github.com/vaibhav135/personal-website', type: 'success' },
+    'home':    { desc: 'Go to dashboard',   msg: 'Navigating to dashboard...', type: 'success', navigate: '/' },
+    'alpha':   { desc: 'Go to dashboard',   msg: 'Navigating to dashboard...', type: 'success', navigate: '/' },
   };
+
+  const CMD_KEYS = Object.keys(COMMANDS);
 
   function initCommandLine() {
     const input = document.querySelector<HTMLInputElement>('.cmdline__input');
     const msg   = document.querySelector<HTMLSpanElement>('.cmdline__msg');
-    if (!input || !msg) return;
+    const menu  = document.querySelector<HTMLDivElement>('.cmdline__menu');
+    if (!input || !msg || !menu) return;
 
     const controller = new AbortController();
     const { signal } = controller;
+
+    let activeIdx = -1;
+    let matches: string[] = [];
+
+    // ---- Menu helpers ----
+
+    function showMenu(filtered: string[]) {
+      matches = filtered;
+      activeIdx = -1;
+
+      if (matches.length === 0) {
+        menu.classList.remove('cmdline__menu--open');
+        menu.innerHTML = '';
+        return;
+      }
+
+      menu.innerHTML = matches.map((cmd, i) =>
+        `<div class="cmdline__menu-item" data-idx="${i}" data-cmd="${cmd}">` +
+          `<span class="cmdline__menu-cmd">:${cmd}</span>` +
+          `<span class="cmdline__menu-desc">${COMMANDS[cmd].desc}</span>` +
+        `</div>`
+      ).join('');
+
+      menu.classList.add('cmdline__menu--open');
+    }
+
+    function hideMenu() {
+      menu.classList.remove('cmdline__menu--open');
+      menu.innerHTML = '';
+      matches = [];
+      activeIdx = -1;
+    }
+
+    function highlightItem(idx: number) {
+      const items = menu.querySelectorAll('.cmdline__menu-item');
+      items.forEach(el => el.classList.remove('cmdline__menu-item--active'));
+      if (idx >= 0 && idx < items.length) {
+        items[idx].classList.add('cmdline__menu-item--active');
+        items[idx].scrollIntoView({ block: 'nearest' });
+      }
+    }
+
+    function executeCommand(cmd: string) {
+      const result = COMMANDS[cmd];
+      msg.textContent = result?.msg ?? `E492: Not an editor command: ${cmd}`;
+      msg.className = 'cmdline__msg' + (result?.type ? ` cmdline__msg--${result.type}` : '');
+      input.value = '';
+      hideMenu();
+
+      // Fun :q! animation
+      if (cmd === 'q!') {
+        document.documentElement.style.transition = 'opacity 0.4s ease';
+        document.documentElement.style.opacity = '0';
+        setTimeout(() => {
+          document.documentElement.style.opacity = '1';
+          msg.textContent = 'Just kidding — you\'re still here.';
+          msg.className = 'cmdline__msg';
+        }, 1200);
+      }
+
+      // Navigate commands (:home, :alpha)
+      if (result?.navigate) {
+        setTimeout(() => { window.location.href = result.navigate!; }, 400);
+      }
+    }
+
+    // ---- Event listeners ----
 
     // Focus on : keypress
     document.addEventListener('keydown', (e) => {
@@ -98,37 +229,83 @@
         input.value = '';
         msg.textContent = '';
         msg.className = 'cmdline__msg';
+        hideMenu();
       }
     }, { signal });
 
-    input.addEventListener('keydown', (e) => {
-      if (e.key !== 'Enter') return;
-      const cmd = input.value.trim().toLowerCase();
-      if (!cmd) return;
-
-      const result = COMMANDS[cmd];
-      msg.textContent = result?.msg ?? `E492: Not an editor command: ${cmd}`;
-      msg.className = 'cmdline__msg' + (result?.type ? ` cmdline__msg--${result.type}` : '');
-      input.value = '';
-
-      // Fun :q! animation
-      if (cmd === 'q!') {
-        document.documentElement.style.transition = 'opacity 0.4s ease';
-        document.documentElement.style.opacity = '0';
-        setTimeout(() => {
-          document.documentElement.style.opacity = '1';
-          msg.textContent = 'Just kidding — you\'re still here.';
-          msg.className = 'cmdline__msg';
-        }, 1200);
+    // Filter suggestions on input
+    input.addEventListener('input', () => {
+      const val = input.value.trim().toLowerCase();
+      if (!val) {
+        hideMenu();
+        return;
       }
+      const filtered = CMD_KEYS.filter(k => k.startsWith(val));
+      showMenu(filtered);
+    }, { signal });
+
+    // Keyboard navigation
+    input.addEventListener('keydown', (e) => {
+      // Arrow navigation in menu
+      if (matches.length > 0 && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+        e.preventDefault();
+        if (e.key === 'ArrowDown') {
+          activeIdx = activeIdx < matches.length - 1 ? activeIdx + 1 : 0;
+        } else {
+          activeIdx = activeIdx > 0 ? activeIdx - 1 : matches.length - 1;
+        }
+        highlightItem(activeIdx);
+        return;
+      }
+
+      // Tab to autocomplete
+      if (e.key === 'Tab' && matches.length > 0) {
+        e.preventDefault();
+        const pick = activeIdx >= 0 ? matches[activeIdx] : matches[0];
+        input.value = pick;
+        input.dispatchEvent(new Event('input'));
+        return;
+      }
+
+      // Enter to execute
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const cmd = activeIdx >= 0 && matches.length > 0
+          ? matches[activeIdx]
+          : input.value.trim().toLowerCase();
+        if (!cmd) return;
+        executeCommand(cmd);
+        return;
+      }
+    }, { signal });
+
+    // Click to select from menu
+    menu.addEventListener('click', (e) => {
+      const item = (e.target as HTMLElement).closest<HTMLElement>('.cmdline__menu-item');
+      if (!item) return;
+      const cmd = item.dataset.cmd;
+      if (cmd) executeCommand(cmd);
+    }, { signal });
+
+    // Hide menu on blur (small delay so click events fire first)
+    input.addEventListener('blur', () => {
+      setTimeout(hideMenu, 150);
     }, { signal });
 
     // Clean up on next page load
-    document.addEventListener('astro:before-preparation', () => controller.abort(), { once: true });
+    document.addEventListener('astro:before-preparation', () => {
+      controller.abort();
+      input.removeAttribute('data-cmd-init');
+    }, { once: true });
+  }
+
+  function safeInit() {
+    const input = document.querySelector<HTMLInputElement>('.cmdline__input');
+    if (!input || input.dataset.cmdInit) return;
+    input.dataset.cmdInit = '1';
+    initCommandLine();
   }
 
   // Run on every navigation (including initial)
-  document.addEventListener('astro:page-load', initCommandLine);
-  // Fallback: also run immediately if astro:page-load already fired
-  if (document.readyState !== 'loading') initCommandLine();
+  document.addEventListener('astro:page-load', safeInit);
 </script>

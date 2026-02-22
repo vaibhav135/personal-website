@@ -1,174 +1,227 @@
 ---
-import NeoVimLayout from '../layouts/NeoVimLayout.astro';
+import DashboardLayout from '../layouts/DashboardLayout.astro';
 import { siteConfig } from '../data/site';
+
+const menuItems = [
+  { href: '/about',      file: 'about.ts',        desc: 'Who I am',           icon: '>' },
+  { href: '/blog',       file: 'blog/',            desc: 'My writing',         icon: '>' },
+  { href: '/experience', file: 'experience.lua',   desc: 'Where I\'ve worked', icon: '>' },
+  { href: '/contact',    file: 'contact.sh',       desc: 'Say hello',          icon: '>' },
+];
+
+// Name banner (green) — ANSI Shadow figlet, 6 lines
+const nameBanner = String.raw`██╗   ██╗ █████╗ ██╗██████╗ ██╗  ██╗ █████╗ ██╗   ██╗
+██║   ██║██╔══██╗██║██╔══██╗██║  ██║██╔══██╗██║   ██║
+██║   ██║███████║██║██████╔╝███████║███████║██║   ██║
+╚██╗ ██╔╝██╔══██║██║██╔══██╗██╔══██║██╔══██║╚██╗ ██╔╝
+ ╚████╔╝ ██║  ██║██║██████╔╝██║  ██║██║  ██║ ╚████╔╝ 
+  ╚═══╝  ╚═╝  ╚═╝╚═╝╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝  ╚═══╝  `;
+
+// Chilling cat (cyan) — 3 lines, sits next to bottom of name
+const catArt = `    |\\__/,|   (\`\\
+  _.|o o  |_   ) )
+-(((---(((--------`;
 ---
 
-<NeoVimLayout title="About" filename="about.ts" filetype="typescript">
-  <div class="code" role="presentation">
-    <!-- Header comments -->
-    <div class="code-line anim-line" style="--i: 0">
-      <span class="line-nr">1</span>
-      <span class="line-content">
-        <span class="syn-comment">// about.ts</span>
-      </span>
+<DashboardLayout title="Welcome">
+  <div class="dash">
+    <!-- ASCII Art -->
+    <div class="dash__art anim-fade-up" style="--i: 0" aria-hidden="true">
+      <pre class="dash__art-name">{nameBanner}</pre>
+      <pre class="dash__art-cat">{catArt}</pre>
     </div>
 
-    <div class="code-line anim-line" style="--i: 1">
-      <span class="line-nr">2</span>
-      <span class="line-content">
-        <span class="syn-comment">// {siteConfig.name} &mdash; {siteConfig.title}</span>
-      </span>
+    <!-- Name & Title -->
+    <div class="dash__header anim-fade-up" style="--i: 2">
+      <h1 class="dash__name">{siteConfig.name}</h1>
+      <p class="dash__title">{siteConfig.title}</p>
     </div>
 
-    <div class="code-line anim-line" style="--i: 2">
-      <span class="line-nr">3</span>
-      <span class="line-content"></span>
-    </div>
+    <!-- Navigation Menu -->
+    <nav class="dash__menu" aria-label="Quick navigation">
+      {menuItems.map((item, i) => (
+        <a href={item.href} class="dash__item anim-fade-up" style={`--i: ${i + 4}`}>
+          <span class="dash__icon">{item.icon}</span>
+          <span class="dash__file">{item.file}</span>
+          <span class="dash__desc">{item.desc}</span>
+        </a>
+      ))}
+    </nav>
 
-    <!-- Interface definition -->
-    <div class="code-line anim-line" style="--i: 3">
-      <span class="line-nr">4</span>
-      <span class="line-content">
-        <span class="syn-keyword">interface</span> <span class="syn-type">Developer</span> <span class="syn-punct">{'{'}</span>
-      </span>
-    </div>
-
-    <div class="code-line anim-line" style="--i: 4">
-      <span class="line-nr">5</span>
-      <span class="line-content">  <span class="syn-property">name</span><span class="syn-operator">:</span> <span class="syn-type">string</span><span class="syn-punct">;</span></span>
-    </div>
-
-    <div class="code-line anim-line" style="--i: 5">
-      <span class="line-nr">6</span>
-      <span class="line-content">  <span class="syn-property">role</span><span class="syn-operator">:</span> <span class="syn-type">string</span><span class="syn-punct">;</span></span>
-    </div>
-
-    <div class="code-line anim-line" style="--i: 6">
-      <span class="line-nr">7</span>
-      <span class="line-content">  <span class="syn-property">location</span><span class="syn-operator">:</span> <span class="syn-type">string</span><span class="syn-punct">;</span></span>
-    </div>
-
-    <div class="code-line anim-line" style="--i: 7">
-      <span class="line-nr">8</span>
-      <span class="line-content">  <span class="syn-property">education</span><span class="syn-operator">:</span> <span class="syn-type">string</span><span class="syn-punct">;</span></span>
-    </div>
-
-    <div class="code-line anim-line" style="--i: 8">
-      <span class="line-nr">9</span>
-      <span class="line-content">  <span class="syn-property">languages</span><span class="syn-operator">:</span> <span class="syn-type">string</span><span class="syn-punct">[];</span></span>
-    </div>
-
-    <div class="code-line anim-line" style="--i: 9">
-      <span class="line-nr">10</span>
-      <span class="line-content">  <span class="syn-property">interests</span><span class="syn-operator">:</span> <span class="syn-type">string</span><span class="syn-punct">[];</span></span>
-    </div>
-
-    <div class="code-line anim-line" style="--i: 10">
-      <span class="line-nr">11</span>
-      <span class="line-content"><span class="syn-punct">{'}'}</span></span>
-    </div>
-
-    <!-- Blank -->
-    <div class="code-line anim-line" style="--i: 11">
-      <span class="line-nr">12</span>
-      <span class="line-content"></span>
-    </div>
-
-    <!-- Object -->
-    <div class="code-line anim-line" style="--i: 12">
-      <span class="line-nr">13</span>
-      <span class="line-content">
-        <span class="syn-keyword">const</span> <span class="syn-constant">me</span><span class="syn-operator">:</span> <span class="syn-type">Developer</span> <span class="syn-operator">=</span> <span class="syn-punct">{'{'}</span>
-      </span>
-    </div>
-
-    <div class="code-line anim-line" style="--i: 13">
-      <span class="line-nr">14</span>
-      <span class="line-content">  <span class="syn-property">name</span><span class="syn-operator">:</span> <span class="syn-string">"Vaibhav Singh Bisht"</span><span class="syn-punct">,</span></span>
-    </div>
-
-    <div class="code-line anim-line" style="--i: 14">
-      <span class="line-nr">15</span>
-      <span class="line-content">  <span class="syn-property">role</span><span class="syn-operator">:</span> <span class="syn-string">"Founding Fullstack Engineer"</span><span class="syn-punct">,</span></span>
-    </div>
-
-    <div class="code-line anim-line" style="--i: 15">
-      <span class="line-nr">16</span>
-      <span class="line-content">  <span class="syn-property">location</span><span class="syn-operator">:</span> <span class="syn-string">"India"</span><span class="syn-punct">,</span></span>
-    </div>
-
-    <div class="code-line anim-line" style="--i: 16">
-      <span class="line-nr">17</span>
-      <span class="line-content">  <span class="syn-property">education</span><span class="syn-operator">:</span> <span class="syn-string">"B.Sc (Hons) CS — University of Delhi"</span><span class="syn-punct">,</span></span>
-    </div>
-
-    <div class="code-line anim-line" style="--i: 17">
-      <span class="line-nr">18</span>
-      <span class="line-content">  <span class="syn-property">languages</span><span class="syn-operator">:</span> <span class="syn-punct">[</span></span>
-    </div>
-
-    <div class="code-line anim-line" style="--i: 18">
-      <span class="line-nr">19</span>
-      <span class="line-content">    <span class="syn-string">"TypeScript"</span><span class="syn-punct">,</span> <span class="syn-string">"Python"</span><span class="syn-punct">,</span> <span class="syn-string">"Go"</span><span class="syn-punct">,</span> <span class="syn-string">"JavaScript"</span><span class="syn-punct">,</span> <span class="syn-string">"Rust"</span></span>
-    </div>
-
-    <div class="code-line anim-line" style="--i: 19">
-      <span class="line-nr">20</span>
-      <span class="line-content">  <span class="syn-punct">],</span></span>
-    </div>
-
-    <div class="code-line anim-line" style="--i: 20">
-      <span class="line-nr">21</span>
-      <span class="line-content">  <span class="syn-property">interests</span><span class="syn-operator">:</span> <span class="syn-punct">[</span></span>
-    </div>
-
-    <div class="code-line anim-line" style="--i: 21">
-      <span class="line-nr">22</span>
-      <span class="line-content">    <span class="syn-string">"founding early-stage startups"</span><span class="syn-punct">,</span></span>
-    </div>
-
-    <div class="code-line anim-line" style="--i: 22">
-      <span class="line-nr">23</span>
-      <span class="line-content">    <span class="syn-string">"open source (Meilisearch, Layer5)"</span><span class="syn-punct">,</span></span>
-    </div>
-
-    <div class="code-line anim-line" style="--i: 23">
-      <span class="line-nr">24</span>
-      <span class="line-content">    <span class="syn-string">"AI/LLM pipelines &amp; voice agents"</span><span class="syn-punct">,</span></span>
-    </div>
-
-    <div class="code-line anim-line" style="--i: 24">
-      <span class="line-nr">25</span>
-      <span class="line-content">    <span class="syn-string">"fullstack web &amp; infra"</span><span class="syn-punct">,</span></span>
-    </div>
-
-    <div class="code-line anim-line" style="--i: 25">
-      <span class="line-nr">26</span>
-      <span class="line-content">    <span class="syn-string">"neovim btw"</span></span>
-    </div>
-
-    <div class="code-line anim-line" style="--i: 26">
-      <span class="line-nr">27</span>
-      <span class="line-content">  <span class="syn-punct">],</span></span>
-    </div>
-
-    <div class="code-line anim-line" style="--i: 27">
-      <span class="line-nr">28</span>
-      <span class="line-content"><span class="syn-punct">{'}'}</span><span class="syn-punct">;</span></span>
-    </div>
-
-    <!-- Blank -->
-    <div class="code-line anim-line" style="--i: 28">
-      <span class="line-nr">29</span>
-      <span class="line-content"></span>
-    </div>
-
-    <!-- Export -->
-    <div class="code-line anim-line" style="--i: 29">
-      <span class="line-nr">30</span>
-      <span class="line-content">
-        <span class="syn-keyword">export</span> <span class="syn-keyword">default</span> <span class="syn-constant">me</span><span class="syn-punct">;</span><span class="cursor-block"></span>
-      </span>
+    <!-- Footer -->
+    <div class="dash__footer anim-fade-up" style="--i: 9">
+      <p class="dash__quote">"Talk is cheap. Show me the code."</p>
+      <p class="dash__attr">&mdash; Linus Torvalds</p>
+      <p class="dash__version">NVIM v0.10.0 &middot; Astro 5 &middot; Dracula &middot; press <kbd>:</kbd> for commands</p>
     </div>
   </div>
-</NeoVimLayout>
+</DashboardLayout>
+
+<style>
+  .dash {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.8rem;
+    text-align: center;
+    max-width: 600px;
+    width: 100%;
+  }
+
+  /* ---- ASCII Art ---- */
+
+  .dash__art {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 1.5rem;
+    user-select: none;
+  }
+
+  .dash__art pre {
+    font-size: 0.72rem;
+    margin: 0;
+  }
+
+  .dash__art-name {
+    color: var(--green);
+    font-family: "Courier New", Courier, monospace;
+    line-height: 1;
+    letter-spacing: 0;
+    display: inline-block;
+    font-variant-ligatures: none;
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: unset;
+  }
+  .dash__art-cat {
+    color: var(--cyan);
+    line-height: 1.35;
+  }
+
+  /* ---- Header ---- */
+
+  .dash__header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .dash__name {
+    color: var(--fg);
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .dash__title {
+    color: var(--purple);
+    font-style: italic;
+    font-size: 0.95rem;
+  }
+
+  /* ---- Menu ---- */
+
+  .dash__menu {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    width: 100%;
+    max-width: 380px;
+  }
+
+  .dash__item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.55rem 1rem;
+    border-radius: 4px;
+    text-decoration: none;
+    color: var(--fg);
+    transition: background 0.12s ease, transform 0.12s ease;
+  }
+
+  .dash__item:hover {
+    background: var(--current-line);
+    text-decoration: none;
+    color: var(--fg);
+    transform: translateX(4px);
+  }
+
+  .dash__icon {
+    color: var(--purple);
+    font-weight: 700;
+    flex-shrink: 0;
+    width: 1.2ch;
+  }
+
+  .dash__file {
+    color: var(--green);
+    flex: 0 0 auto;
+    width: 18ch;
+    text-align: left;
+  }
+
+  .dash__desc {
+    color: var(--comment);
+    font-size: 0.85rem;
+    text-align: left;
+  }
+
+  /* ---- Footer ---- */
+
+  .dash__footer {
+    margin-top: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .dash__quote {
+    color: var(--comment);
+    font-style: italic;
+    font-size: 0.85rem;
+  }
+
+  .dash__attr {
+    color: var(--comment);
+    font-size: 0.78rem;
+    opacity: 0.7;
+  }
+
+  .dash__version {
+    color: var(--current-line);
+    font-size: 0.7rem;
+    margin-top: 0.5rem;
+  }
+
+  .dash__version kbd {
+    color: var(--purple);
+    font-family: inherit;
+  }
+
+  /* ---- Responsive ---- */
+
+  @media (max-width: 520px) {
+    .dash__art pre {
+      font-size: 0.48rem;
+    }
+
+    .dash__name {
+      font-size: 1.2rem;
+    }
+
+    .dash__item {
+      padding: 0.45rem 0.6rem;
+      gap: 0.5rem;
+    }
+
+    .dash__file {
+      width: 15ch;
+      font-size: 0.85rem;
+    }
+
+    .dash__desc {
+      font-size: 0.75rem;
+    }
+  }
+</style>
