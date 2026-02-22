@@ -1,0 +1,51 @@
+/* ============================================
+   Dracula Color Palette
+   https://draculatheme.com/contribute
+   ============================================ */
+
+:root {
+  /* Core palette */
+  --bg: #282a36;
+  --bg-dark: #21222c;
+  --bg-light: #343746;
+  --current-line: #44475a;
+  --selection: #44475a;
+  --fg: #f8f8f2;
+  --comment: #6272a4;
+
+  /* Accent colors */
+  --cyan: #8be9fd;
+  --green: #50fa7b;
+  --orange: #ffb86c;
+  --pink: #ff79c6;
+  --purple: #bd93f9;
+  --red: #ff5555;
+  --yellow: #f1fa8c;
+
+  /* Semantic syntax tokens */
+  --syn-keyword: var(--pink);
+  --syn-string: var(--yellow);
+  --syn-type: var(--cyan);
+  --syn-function: var(--green);
+  --syn-comment: var(--comment);
+  --syn-number: var(--purple);
+  --syn-operator: var(--pink);
+  --syn-property: var(--fg);
+  --syn-punctuation: var(--fg);
+
+  /* UI semantic tokens */
+  --ui-tab-active-bg: var(--bg);
+  --ui-tab-inactive-bg: var(--bg-dark);
+  --ui-tab-active-fg: var(--fg);
+  --ui-tab-inactive-fg: var(--comment);
+  --ui-sidebar-bg: var(--bg-dark);
+  --ui-statusline-bg: var(--current-line);
+  --ui-line-nr: var(--comment);
+  --ui-line-nr-active: var(--fg);
+  --ui-cursor: var(--fg);
+
+  /* Typography */
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', monospace;
+  --font-size: 14px;
+  --line-height: 1.7;
+}

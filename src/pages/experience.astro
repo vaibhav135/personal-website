@@ -1,0 +1,196 @@
+---
+import NeoVimLayout from '../layouts/NeoVimLayout.astro';
+
+const experiences = [
+  {
+    company: 'MyClone (prev. Rappo)',
+    role: 'Founding Fullstack Engineer',
+    period: 'Aug 2025 — Present',
+    description: 'Voice cloning agents, RAG systems, rebuilt product in 4 weeks during pivot. Leading 3-person eng team.',
+    tech: ['LiveKit', 'LlamaIndex', 'Langfuse', 'Terraform', 'AWS', 'PostgreSQL'],
+  },
+  {
+    company: 'Rappo (now MyClone)',
+    role: 'Founding Fullstack Engineer',
+    period: 'Jan 2025 — Aug 2025',
+    description: 'Scheduling with Cal.com, recommendation engine for 40+ startups, video comms with Dyte.',
+    tech: ['TypeScript', 'Cal.com', 'Dyte', 'Node.js'],
+  },
+  {
+    company: 'Aereo (prev. Aarav Unmanned Systems)',
+    role: 'Software Engineer',
+    period: 'Jan 2022 — Dec 2024',
+    description: '3D/2D geospatial maps, refactored backend (40-50% less code), cut prod bugs 60% with E2E tests.',
+    tech: ['Cesium.js', 'OpenLayers', 'React', 'GitLab CI/CD', 'Jest', 'Playwright'],
+  },
+];
+
+const openSource = [
+  { project: 'Meilisearch', contribution: 'Enhanced mini-dashboard UI/UX' },
+  { project: 'Layer5', contribution: 'Meshery, meshery-cloud, meshmap — UI features & critical bug fixes' },
+];
+
+const skills = [
+  'TypeScript', 'Python', 'Go', 'Rust', 'JavaScript',
+  'React', 'Next.js', 'Node.js', 'FastAPI', 'Django',
+  'LlamaIndex', 'LiveKit', 'Langfuse', 'Dyte',
+  'Docker', 'AWS', 'Terraform', 'Sentry',
+  'PostgreSQL', 'MongoDB', 'Linux', 'Git',
+];
+
+let lineNr = 1;
+---
+
+<NeoVimLayout title="Experience" filename="experience.lua" filetype="lua">
+  <div class="code" role="presentation">
+    <!-- Header comments -->
+    <div class="code-line anim-line" style="--i: 0">
+      <span class="line-nr">{lineNr++}</span>
+      <span class="line-content"><span class="syn-comment">-- experience.lua</span></span>
+    </div>
+    <div class="code-line anim-line" style="--i: 1">
+      <span class="line-nr">{lineNr++}</span>
+      <span class="line-content"><span class="syn-comment">-- Professional journey, open source &amp; skills</span></span>
+    </div>
+    <div class="code-line anim-line" style="--i: 2">
+      <span class="line-nr">{lineNr++}</span>
+      <span class="line-content"></span>
+    </div>
+
+    <!-- Type annotation -->
+    <div class="code-line anim-line" style="--i: 3">
+      <span class="line-nr">{lineNr++}</span>
+      <span class="line-content"><span class="syn-decorator">---@type Experience[]</span></span>
+    </div>
+
+    <div class="code-line anim-line" style="--i: 4">
+      <span class="line-nr">{lineNr++}</span>
+      <span class="line-content">
+        <span class="syn-keyword">local</span> <span class="syn-constant">experience</span> <span class="syn-operator">=</span> <span class="syn-punct">{'{'}</span>
+      </span>
+    </div>
+
+    {experiences.map((exp, expIdx) => {
+      const baseDelay = 5 + expIdx * 8;
+      return (
+        <>
+          <div class="code-line anim-line" style={`--i: ${baseDelay}`}>
+            <span class="line-nr">{lineNr++}</span>
+            <span class="line-content">  <span class="syn-punct">{'{'}</span></span>
+          </div>
+          <div class="code-line anim-line" style={`--i: ${baseDelay + 1}`}>
+            <span class="line-nr">{lineNr++}</span>
+            <span class="line-content">    <span class="syn-property">company</span> <span class="syn-operator">=</span> <span class="syn-string">"{exp.company}"</span><span class="syn-punct">,</span></span>
+          </div>
+          <div class="code-line anim-line" style={`--i: ${baseDelay + 2}`}>
+            <span class="line-nr">{lineNr++}</span>
+            <span class="line-content">    <span class="syn-property">role</span> <span class="syn-operator">=</span> <span class="syn-string">"{exp.role}"</span><span class="syn-punct">,</span></span>
+          </div>
+          <div class="code-line anim-line" style={`--i: ${baseDelay + 3}`}>
+            <span class="line-nr">{lineNr++}</span>
+            <span class="line-content">    <span class="syn-property">period</span> <span class="syn-operator">=</span> <span class="syn-string">"{exp.period}"</span><span class="syn-punct">,</span></span>
+          </div>
+          <div class="code-line anim-line" style={`--i: ${baseDelay + 4}`}>
+            <span class="line-nr">{lineNr++}</span>
+            <span class="line-content">    <span class="syn-property">description</span> <span class="syn-operator">=</span> <span class="syn-string">"{exp.description}"</span><span class="syn-punct">,</span></span>
+          </div>
+          <div class="code-line anim-line" style={`--i: ${baseDelay + 5}`}>
+            <span class="line-nr">{lineNr++}</span>
+            <span class="line-content">    <span class="syn-property">tech</span> <span class="syn-operator">=</span> <span class="syn-punct">{'{'}</span> {exp.tech.map((t, i) => <><span class="syn-string">"{t}"</span>{i < exp.tech.length - 1 ? <span class="syn-punct">, </span> : ''}</>)} <span class="syn-punct">{'}'}</span><span class="syn-punct">,</span></span>
+          </div>
+          <div class="code-line anim-line" style={`--i: ${baseDelay + 6}`}>
+            <span class="line-nr">{lineNr++}</span>
+            <span class="line-content">  <span class="syn-punct">{'}'}</span><span class="syn-punct">,</span></span>
+          </div>
+        </>
+      );
+    })}
+
+    <div class="code-line anim-line" style={`--i: ${5 + experiences.length * 8}`}>
+      <span class="line-nr">{lineNr++}</span>
+      <span class="line-content"><span class="syn-punct">{'}'}</span></span>
+    </div>
+
+    <!-- Blank -->
+    <div class="code-line anim-line" style={`--i: ${6 + experiences.length * 8}`}>
+      <span class="line-nr">{lineNr++}</span>
+      <span class="line-content"></span>
+    </div>
+
+    <!-- Open Source -->
+    <div class="code-line anim-line" style={`--i: ${7 + experiences.length * 8}`}>
+      <span class="line-nr">{lineNr++}</span>
+      <span class="line-content"><span class="syn-decorator">---@type Contribution[]</span></span>
+    </div>
+    <div class="code-line anim-line" style={`--i: ${8 + experiences.length * 8}`}>
+      <span class="line-nr">{lineNr++}</span>
+      <span class="line-content">
+        <span class="syn-keyword">local</span> <span class="syn-constant">open_source</span> <span class="syn-operator">=</span> <span class="syn-punct">{'{'}</span>
+      </span>
+    </div>
+
+    {openSource.map((os, i) => {
+      const d = 9 + experiences.length * 8 + i * 2;
+      return (
+        <>
+          <div class="code-line anim-line" style={`--i: ${d}`}>
+            <span class="line-nr">{lineNr++}</span>
+            <span class="line-content">  <span class="syn-punct">{'{'}</span> <span class="syn-property">project</span> <span class="syn-operator">=</span> <span class="syn-string">"{os.project}"</span><span class="syn-punct">,</span> <span class="syn-property">work</span> <span class="syn-operator">=</span> <span class="syn-string">"{os.contribution}"</span> <span class="syn-punct">{'}'}</span><span class="syn-punct">,</span></span>
+          </div>
+        </>
+      );
+    })}
+
+    <div class="code-line anim-line" style={`--i: ${9 + experiences.length * 8 + openSource.length * 2}`}>
+      <span class="line-nr">{lineNr++}</span>
+      <span class="line-content"><span class="syn-punct">{'}'}</span></span>
+    </div>
+
+    <!-- Blank -->
+    <div class="code-line anim-line" style={`--i: ${10 + experiences.length * 8 + openSource.length * 2}`}>
+      <span class="line-nr">{lineNr++}</span>
+      <span class="line-content"></span>
+    </div>
+
+    <!-- Skills -->
+    <div class="code-line anim-line" style={`--i: ${11 + experiences.length * 8 + openSource.length * 2}`}>
+      <span class="line-nr">{lineNr++}</span>
+      <span class="line-content"><span class="syn-decorator">---@type string[]</span></span>
+    </div>
+    <div class="code-line anim-line" style={`--i: ${12 + experiences.length * 8 + openSource.length * 2}`}>
+      <span class="line-nr">{lineNr++}</span>
+      <span class="line-content">
+        <span class="syn-keyword">local</span> <span class="syn-constant">skills</span> <span class="syn-operator">=</span> <span class="syn-punct">{'{'}</span>
+      </span>
+    </div>
+
+    {skills.map((skill, i) => {
+      const d = 13 + experiences.length * 8 + openSource.length * 2 + i;
+      return (
+        <div class="code-line anim-line" style={`--i: ${d}`}>
+          <span class="line-nr">{lineNr++}</span>
+          <span class="line-content">  <span class="syn-string">"{skill}"</span><span class="syn-punct">,</span></span>
+        </div>
+      );
+    })}
+
+    <div class="code-line anim-line" style={`--i: ${13 + experiences.length * 8 + openSource.length * 2 + skills.length}`}>
+      <span class="line-nr">{lineNr++}</span>
+      <span class="line-content"><span class="syn-punct">{'}'}</span></span>
+    </div>
+
+    <!-- Blank -->
+    <div class="code-line anim-line" style={`--i: ${14 + experiences.length * 8 + openSource.length * 2 + skills.length}`}>
+      <span class="line-nr">{lineNr++}</span>
+      <span class="line-content"></span>
+    </div>
+
+    <!-- Return -->
+    <div class="code-line anim-line" style={`--i: ${15 + experiences.length * 8 + openSource.length * 2 + skills.length}`}>
+      <span class="line-nr">{lineNr++}</span>
+      <span class="line-content">
+        <span class="syn-keyword">return</span> <span class="syn-punct">{'{'}</span> <span class="syn-property">experience</span><span class="syn-punct">,</span> <span class="syn-property">open_source</span><span class="syn-punct">,</span> <span class="syn-property">skills</span> <span class="syn-punct">{'}'}</span><span class="cursor-block"></span>
+      </span>
+    </div>
+  </div>
+</NeoVimLayout>

@@ -1,0 +1,49 @@
+---
+import NeoVimLayout from '../../layouts/NeoVimLayout.astro';
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('blog', ({ data }) => {
+  return import.meta.env.PROD ? !data.draft : true;
+})).sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+function formatDate(date: Date): string {
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+  });
+}
+---
+
+<NeoVimLayout title="Blog" filename="blog/" filetype="directory">
+  <div class="blog-list">
+    <div class="blog-list__header">
+      <span class="syn-comment">-- Telescope: find_files (blog/)</span>
+    </div>
+
+    {posts.length === 0 ? (
+      <div class="blog-list__empty">
+        <span class="syn-comment">-- No posts yet. Check back soon!</span>
+      </div>
+    ) : (
+      <div class="blog-list__entries">
+        {posts.map((post, i) => (
+          <a
+            href={`/blog/${post.id}`}
+            class="blog-list__entry anim-fade-up"
+            style={`--i: ${i}`}
+          >
+            <span class="blog-list__entry-title">{post.id}.md</span>
+            <span class="blog-list__entry-desc">{post.data.description}</span>
+            <span class="blog-list__entry-date">{formatDate(post.data.pubDate)}</span>
+            {post.data.tags.length > 0 && (
+              <span class="blog-list__entry-tags">
+                {post.data.tags.map((tag) => `#${tag}`).join(' ')}
+              </span>
+            )}
+          </a>
+        ))}
+      </div>
+    )}
+  </div>
+</NeoVimLayout>

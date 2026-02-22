@@ -1,0 +1,117 @@
+---
+import { navItems } from '../data/nav';
+
+interface Props {
+  currentFile: string;
+}
+
+const { currentFile } = Astro.props;
+---
+
+<aside class="sidebar" aria-label="File explorer">
+  <div class="sidebar__header">EXPLORER</div>
+  <nav class="sidebar__tree">
+    <div class="sidebar__folder">
+      <span class="sidebar__chevron">&#9662;</span>
+      <span class="sidebar__folder-name">portfolio</span>
+    </div>
+    {navItems.map((item, idx) => (
+      <a
+        href={item.href}
+        class:list={[
+          'sidebar__item',
+          { 'sidebar__item--active': item.filename === currentFile },
+        ]}
+        style={`--i: ${idx}`}
+      >
+        {item.filetype === 'directory'
+          ? <span class="sidebar__icon sidebar__icon--dir">&#9656;</span>
+          : <span class="sidebar__icon">&nbsp;</span>
+        }
+        <span class="sidebar__name">{item.label}</span>
+      </a>
+    ))}
+  </nav>
+</aside>
+
+<style>
+  .sidebar {
+    background: var(--ui-sidebar-bg);
+    border-right: 1px solid var(--current-line);
+    overflow-y: auto;
+    font-size: 0.85rem;
+    animation: slide-in-left 0.3s ease;
+  }
+
+  .sidebar__header {
+    padding: 0.6rem 1rem;
+    color: var(--comment);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  .sidebar__tree {
+    padding: 0 0.5rem 1rem;
+  }
+
+  .sidebar__folder {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.5rem;
+    color: var(--fg);
+    font-weight: 700;
+  }
+
+  .sidebar__chevron {
+    font-size: 0.65rem;
+    color: var(--comment);
+  }
+
+  .sidebar__item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.2rem 0.5rem 0.2rem 1.4rem;
+    color: var(--fg);
+    text-decoration: none;
+    border-radius: 3px;
+    transition: background 0.1s ease;
+    opacity: 0;
+    animation: fade-in 0.2s ease forwards;
+    animation-delay: calc(var(--i) * 40ms + 100ms);
+  }
+
+  .sidebar__item:hover {
+    background: var(--current-line);
+    text-decoration: none;
+    color: var(--fg);
+  }
+
+  .sidebar__item--active {
+    background: var(--current-line);
+  }
+
+  .sidebar__item--active .sidebar__name {
+    color: var(--green);
+  }
+
+  .sidebar__icon {
+    font-size: 0.7rem;
+    width: 1em;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .sidebar__icon--dir {
+    color: var(--yellow);
+  }
+
+  @media (max-width: 768px) {
+    .sidebar {
+      display: none;
+    }
+  }
+</style>
