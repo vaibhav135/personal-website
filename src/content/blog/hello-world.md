@@ -1,7 +1,7 @@
 ---
 title: "Hello, World!"
 description: "A little about me, what I do, and why I started writing."
-pubDate: 2026-02-22
+pubDate: 2026-02-21
 tags: ["personal", "intro"]
 ---
 
