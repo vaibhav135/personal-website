@@ -17,9 +17,25 @@ const nameBanner = String.raw`██╗   ██╗ █████╗ ██╗
  ╚████╔╝ ██║  ██║██║██████╔╝██║  ██║██║  ██║ ╚████╔╝ 
   ╚═══╝  ╚═╝  ╚═╝╚═╝╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝  ╚═══╝  `;
 
-// Chilling cat (cyan) — 3 lines, sits next to bottom of name
-const catArt = `    |\\__/,|   (\`\\
+// Cat faces — idle + per-menu-item reactions
+const catIdle = `    |\\__/,|   (\`\\
   _.|o o  |_   ) )
+-(((---(((--------`;
+
+const catAbout = `    |\\__/,|   (\`\\
+  _.|? ?  |_   ) )
+-(((---(((--------`;
+
+const catBlog = `    |\\__/,|   (\`\\
+  _.|- -  |_   ) )
+-(((---(((--------`;
+
+const catExperience = `    |\\__/,|   (\`\\
+  _.|O O  |_   ) )
+-(((---(((--------`;
+
+const catContact = `    |\\__/,|   (\`\\
+  _.|^ ^  |_   ) )
 -(((---(((--------`;
 ---
 
@@ -28,7 +44,13 @@ const catArt = `    |\\__/,|   (\`\\
     <!-- ASCII Art -->
     <div class="dash__art anim-fade-up" style="--i: 0" aria-hidden="true">
       <pre class="dash__art-name">{nameBanner}</pre>
-      <pre class="dash__art-cat">{catArt}</pre>
+      <div class="dash__art-cats">
+        <pre class="dash__art-cat dash__art-cat--idle">{catIdle}</pre>
+        <pre class="dash__art-cat dash__art-cat--about">{catAbout}</pre>
+        <pre class="dash__art-cat dash__art-cat--blog">{catBlog}</pre>
+        <pre class="dash__art-cat dash__art-cat--experience">{catExperience}</pre>
+        <pre class="dash__art-cat dash__art-cat--contact">{catContact}</pre>
+      </div>
     </div>
 
     <!-- Name & Title -->
@@ -99,10 +121,46 @@ const catArt = `    |\\__/,|   (\`\\
     -webkit-font-smoothing: none;
     -moz-osx-font-smoothing: unset;
   }
+  .dash__art-cats {
+    position: relative;
+  }
+
   .dash__art-cat {
     color: var(--cyan);
     line-height: 1.35;
   }
+
+  /* Hide all cat states except idle by default */
+  .dash__art-cat--about,
+  .dash__art-cat--blog,
+  .dash__art-cat--experience,
+  .dash__art-cat--contact {
+    display: none;
+  }
+
+  /* ---- Hover reactions (CSS :has) ---- */
+
+  /* Cat face swaps */
+  .dash:has([href="/about"]:hover) .dash__art-cat--idle { display: none; }
+  .dash:has([href="/about"]:hover) .dash__art-cat--about { display: block; }
+
+  .dash:has([href="/blog"]:hover) .dash__art-cat--idle { display: none; }
+  .dash:has([href="/blog"]:hover) .dash__art-cat--blog { display: block; }
+
+  .dash:has([href="/experience"]:hover) .dash__art-cat--idle { display: none; }
+  .dash:has([href="/experience"]:hover) .dash__art-cat--experience { display: block; }
+
+  .dash:has([href="/contact"]:hover) .dash__art-cat--idle { display: none; }
+  .dash:has([href="/contact"]:hover) .dash__art-cat--contact { display: block; }
+
+  /* Name banner color shifts to match filetype */
+  .dash__art-name {
+    transition: color 0.2s ease;
+  }
+
+  .dash:has([href="/about"]:hover) .dash__art-name { color: var(--cyan); }
+  .dash:has([href="/blog"]:hover) .dash__art-name { color: var(--yellow); }
+  .dash:has([href="/experience"]:hover) .dash__art-name { color: var(--purple); }
 
   /* ---- Header ---- */
 
