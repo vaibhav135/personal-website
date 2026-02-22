@@ -57,6 +57,12 @@ jobs:
       - name: Install Wrangler
         run: npm install -g wrangler
 
+      - name: Create Pages project if needed
+        run: wrangler pages project create personal-website --production-branch main 2>/dev/null || true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
       - name: Deploy to Cloudflare Pages
         run: wrangler pages deploy dist --project-name=personal-website
         env:
