@@ -48,8 +48,14 @@ const catArt = `    |\\__/,|   (\`\\
       ))}
     </nav>
 
+    <!-- Featured Post -->
+    <a href="/blog/hello-world" class="dash__featured anim-fade-up" style="--i: 9">
+      <span class="dash__featured-label">Start here</span>
+      <span class="dash__featured-file">hello-world.md</span>
+    </a>
+
     <!-- Footer -->
-    <div class="dash__footer anim-fade-up" style="--i: 9">
+    <div class="dash__footer anim-fade-up" style="--i: 10">
       <p class="dash__quote">"Talk is cheap. Show me the code."</p>
       <p class="dash__attr">&mdash; Linus Torvalds</p>
       <p class="dash__version">NVIM v0.10.0 &middot; Astro 5 &middot; Dracula &middot; press <kbd>:</kbd> for commands</p>
@@ -167,6 +173,37 @@ const catArt = `    |\\__/,|   (\`\\
     text-align: left;
   }
 
+  /* ---- Featured Post ---- */
+
+  .dash__featured {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    border: 1px dashed var(--current-line);
+    border-radius: 4px;
+    text-decoration: none;
+    color: var(--fg);
+    font-size: 0.85rem;
+    transition: background 0.12s ease, border-color 0.12s ease;
+  }
+
+  .dash__featured:hover {
+    background: var(--current-line);
+    border-color: var(--comment);
+    text-decoration: none;
+    color: var(--fg);
+  }
+
+  .dash__featured-label {
+    color: var(--orange);
+    font-style: italic;
+  }
+
+  .dash__featured-file {
+    color: var(--green);
+  }
+
   /* ---- Footer ---- */
 
   .dash__footer {
@@ -202,6 +239,14 @@ const catArt = `    |\\__/,|   (\`\\
   /* ---- Responsive ---- */
 
   @media (max-width: 520px) {
+    .dash__art {
+      flex-direction: column;
+      align-items: center;
+      gap: 0.8rem;
+      max-width: 100%;
+      overflow: hidden;
+    }
+
     .dash__art pre {
       font-size: 0.48rem;
     }
@@ -222,6 +267,20 @@ const catArt = `    |\\__/,|   (\`\\
 
     .dash__desc {
       font-size: 0.75rem;
+    }
+  }
+
+  @media (max-width: 380px) {
+    .dash__art pre {
+      font-size: 0.38rem;
+    }
+
+    .dash__file {
+      width: auto;
+    }
+
+    .dash__desc {
+      display: none;
     }
   }
 </style>
