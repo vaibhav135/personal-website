@@ -1,0 +1,109 @@
+---
+interface Props {
+  filename: string;
+  filetype: string;
+}
+
+const { filename, filetype } = Astro.props;
+---
+
+<footer class="statusline" aria-label="Status bar">
+  <div class="statusline__left">
+    <span class="statusline__mode">NORMAL</span>
+    <span class="statusline__branch">
+      <span class="statusline__branch-icon" aria-hidden="true">&#9733;</span>
+      main
+    </span>
+  </div>
+  <div class="statusline__center">
+    <span class="statusline__filename">{filename}</span>
+  </div>
+  <div class="statusline__right">
+    <span class="statusline__filetype">{filetype}</span>
+    <span class="statusline__position">Ln 1, Col 1</span>
+  </div>
+</footer>
+
+<style>
+  .statusline {
+    display: flex;
+    align-items: stretch;
+    background: var(--ui-statusline-bg);
+    font-size: 0.78rem;
+    min-height: 1.6rem;
+    overflow: hidden;
+  }
+
+  .statusline__left,
+  .statusline__right {
+    display: flex;
+    align-items: stretch;
+  }
+
+  .statusline__center {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--fg);
+    font-size: 0.75rem;
+  }
+
+  .statusline__mode {
+    background: var(--purple);
+    color: var(--bg);
+    font-weight: 700;
+    padding: 0 0.8rem;
+    display: flex;
+    align-items: center;
+    letter-spacing: 0.05em;
+  }
+
+  .statusline__branch {
+    padding: 0 0.7rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: var(--fg);
+    background: var(--bg-light);
+  }
+
+  .statusline__branch-icon {
+    color: var(--orange);
+    font-size: 0.65rem;
+  }
+
+  .statusline__filename {
+    color: var(--comment);
+  }
+
+  .statusline__filetype {
+    padding: 0 0.7rem;
+    display: flex;
+    align-items: center;
+    color: var(--fg);
+    background: var(--bg-light);
+  }
+
+  .statusline__position {
+    background: var(--purple);
+    color: var(--bg);
+    font-weight: 700;
+    padding: 0 0.8rem;
+    display: flex;
+    align-items: center;
+  }
+
+  @media (max-width: 480px) {
+    .statusline__branch,
+    .statusline__filetype {
+      display: none;
+    }
+
+    .statusline__mode,
+    .statusline__position {
+      padding: 0 0.5rem;
+      font-size: 0.7rem;
+    }
+  }
+</style>

@@ -1,0 +1,134 @@
+---
+// CommandLine — Easter egg command input at the bottom of the editor.
+// Press : (colon) anywhere on the page to focus. Escape to dismiss.
+---
+
+<div class="cmdline">
+  <span class="cmdline__prompt" aria-hidden="true">:</span>
+  <input
+    type="text"
+    class="cmdline__input"
+    aria-label="Vim command line"
+    autocomplete="off"
+    autocorrect="off"
+    spellcheck="false"
+  />
+  <span class="cmdline__msg" aria-live="polite"></span>
+</div>
+
+<style>
+  .cmdline {
+    display: flex;
+    align-items: center;
+    background: var(--bg);
+    padding: 0.15rem 0.5rem;
+    font-size: 0.82rem;
+    min-height: 1.5rem;
+    border-top: 1px solid var(--current-line);
+    gap: 0.1rem;
+  }
+
+  .cmdline__prompt {
+    color: var(--fg);
+    flex-shrink: 0;
+    opacity: 0.4;
+    transition: opacity 0.15s ease;
+  }
+
+  .cmdline:focus-within .cmdline__prompt {
+    opacity: 1;
+    color: var(--green);
+  }
+
+  .cmdline__input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--fg);
+    font-family: var(--font-mono);
+    font-size: inherit;
+    caret-color: var(--green);
+    min-width: 0;
+  }
+
+  .cmdline__msg {
+    color: var(--comment);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cmdline__msg--error {
+    color: var(--red);
+  }
+
+  .cmdline__msg--success {
+    color: var(--green);
+  }
+</style>
+
+<script>
+  const COMMANDS: Record<string, { msg: string; type?: 'error' | 'success' }> = {
+    'q':       { msg: 'E37: No write since last change (add ! to override)', type: 'error' },
+    'q!':      { msg: 'Thanks for visiting!', type: 'success' },
+    'wq':      { msg: '"portfolio" written. Bookmarked!', type: 'success' },
+    'w':       { msg: '"portfolio" written', type: 'success' },
+    'help':    { msg: ':q :wq :help :version :source — try them!' },
+    'version': { msg: 'NVIM v0.10.0 — powered by Astro + Cloudflare' },
+    'source':  { msg: 'github.com/vaibhav135/personal-website', type: 'success' },
+  };
+
+  function initCommandLine() {
+    const input = document.querySelector<HTMLInputElement>('.cmdline__input');
+    const msg   = document.querySelector<HTMLSpanElement>('.cmdline__msg');
+    if (!input || !msg) return;
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    // Focus on : keypress
+    document.addEventListener('keydown', (e) => {
+      if (e.key === ':' && document.activeElement?.tagName !== 'INPUT') {
+        e.preventDefault();
+        input.focus();
+      }
+      if (e.key === 'Escape') {
+        input.blur();
+        input.value = '';
+        msg.textContent = '';
+        msg.className = 'cmdline__msg';
+      }
+    }, { signal });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      const cmd = input.value.trim().toLowerCase();
+      if (!cmd) return;
+
+      const result = COMMANDS[cmd];
+      msg.textContent = result?.msg ?? `E492: Not an editor command: ${cmd}`;
+      msg.className = 'cmdline__msg' + (result?.type ? ` cmdline__msg--${result.type}` : '');
+      input.value = '';
+
+      // Fun :q! animation
+      if (cmd === 'q!') {
+        document.documentElement.style.transition = 'opacity 0.4s ease';
+        document.documentElement.style.opacity = '0';
+        setTimeout(() => {
+          document.documentElement.style.opacity = '1';
+          msg.textContent = 'Just kidding — you\'re still here.';
+          msg.className = 'cmdline__msg';
+        }, 1200);
+      }
+    }, { signal });
+
+    // Clean up on next page load
+    document.addEventListener('astro:before-preparation', () => controller.abort(), { once: true });
+  }
+
+  // Run on every navigation (including initial)
+  document.addEventListener('astro:page-load', initCommandLine);
+  // Fallback: also run immediately if astro:page-load already fired
+  if (document.readyState !== 'loading') initCommandLine();
+</script>

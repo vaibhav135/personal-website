@@ -1,0 +1,62 @@
+---
+import NeoVimLayout from '../../layouts/NeoVimLayout.astro';
+import { getCollection, render } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog', ({ data }) => {
+    return import.meta.env.PROD ? !data.draft : true;
+  });
+
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+interface Props {
+  post: CollectionEntry<'blog'>;
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+
+function formatDate(date: Date): string {
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+---
+
+<NeoVimLayout
+  title={post.data.title}
+  filename={`${post.id}.md`}
+  filetype="markdown"
+  description={post.data.description}
+>
+  <article class="blog-post">
+    <header>
+      <h1>{post.data.title}</h1>
+      <div class="blog-meta">
+        <time datetime={post.data.pubDate.toISOString()}>
+          {formatDate(post.data.pubDate)}
+        </time>
+        {post.data.updatedDate && (
+          <span>
+            &middot; Updated {formatDate(post.data.updatedDate)}
+          </span>
+        )}
+      </div>
+      {post.data.tags.length > 0 && (
+        <div class="blog-tags">
+          {post.data.tags.map((tag) => (
+            <span class="blog-tag">#{tag}</span>
+          ))}
+        </div>
+      )}
+    </header>
+    <Content />
+  </article>
+</NeoVimLayout>

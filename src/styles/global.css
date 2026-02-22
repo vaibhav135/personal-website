@@ -1,0 +1,287 @@
+@import './dracula.css';
+@import './animations.css';
+@import './neovim.css';
+
+/* ============================================
+   Reset & Base
+   ============================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: var(--font-size);
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-mono);
+  background-color: var(--bg);
+  color: var(--fg);
+  line-height: var(--line-height);
+  overflow: hidden;
+  height: 100dvh;
+  width: 100dvw;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: var(--cyan);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+a:hover {
+  color: var(--purple);
+}
+
+::selection {
+  background-color: var(--selection);
+  color: var(--fg);
+}
+
+/* ---- Scrollbar ---- */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--current-line);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--comment);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--current-line) var(--bg-dark);
+}
+
+/* ============================================
+   Syntax Highlighting (hand-crafted code pages)
+   ============================================ */
+
+.syn-keyword   { color: var(--syn-keyword); }
+.syn-string    { color: var(--syn-string); }
+.syn-type      { color: var(--syn-type); font-style: italic; }
+.syn-function  { color: var(--syn-function); }
+.syn-comment   { color: var(--syn-comment); font-style: italic; }
+.syn-number    { color: var(--syn-number); }
+.syn-operator  { color: var(--syn-operator); }
+.syn-property  { color: var(--syn-property); }
+.syn-punct     { color: var(--syn-punctuation); }
+.syn-constant  { color: var(--purple); }
+.syn-decorator { color: var(--green); font-style: italic; }
+
+/* ============================================
+   Code Lines (home, experience pages)
+   ============================================ */
+
+.code-line {
+  display: flex;
+  align-items: baseline;
+  min-height: calc(1em * var(--line-height));
+  padding: 0 1rem 0 0;
+  transition: background 0.1s ease;
+}
+
+.code-line:hover {
+  background: var(--current-line);
+}
+
+.line-nr {
+  display: inline-block;
+  width: 3.5rem;
+  text-align: right;
+  padding-right: 1.5rem;
+  color: var(--ui-line-nr);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.code-line:hover .line-nr {
+  color: var(--ui-line-nr-active);
+}
+
+.line-content {
+  white-space: pre;
+  min-height: 1em;
+}
+
+/* ============================================
+   Blog Post Styles (rendered markdown)
+   ============================================ */
+
+.blog-post {
+  padding: 1.5rem 2rem;
+  max-width: 72ch;
+}
+
+.blog-post header {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--current-line);
+}
+
+.blog-post h1 {
+  color: var(--pink);
+  font-size: 1.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.blog-post .blog-meta {
+  color: var(--comment);
+  font-size: 0.85rem;
+}
+
+.blog-post .blog-tags {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.blog-post .blog-tag {
+  color: var(--cyan);
+  font-size: 0.8rem;
+}
+
+.blog-post h2 {
+  color: var(--cyan);
+  font-size: 1.3rem;
+  margin: 1.5rem 0 0.75rem;
+}
+
+.blog-post h3 {
+  color: var(--green);
+  font-size: 1.1rem;
+  margin: 1.25rem 0 0.5rem;
+}
+
+.blog-post p {
+  margin: 0.75rem 0;
+  color: var(--fg);
+}
+
+.blog-post ul,
+.blog-post ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+.blog-post li {
+  margin: 0.3rem 0;
+}
+
+.blog-post blockquote {
+  border-left: 3px solid var(--purple);
+  padding-left: 1rem;
+  color: var(--comment);
+  margin: 1rem 0;
+  font-style: italic;
+}
+
+.blog-post code {
+  background: var(--current-line);
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+.blog-post pre {
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.blog-post pre code {
+  background: none;
+  padding: 0;
+}
+
+.blog-post strong {
+  color: var(--orange);
+  font-weight: 700;
+}
+
+.blog-post em {
+  color: var(--yellow);
+  font-style: italic;
+}
+
+.blog-post hr {
+  border: none;
+  border-top: 1px solid var(--current-line);
+  margin: 1.5rem 0;
+}
+
+/* ============================================
+   Blog Listing
+   ============================================ */
+
+.blog-list {
+  padding: 1rem 1.5rem;
+}
+
+.blog-list__header {
+  color: var(--comment);
+  font-style: italic;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.blog-list__entry {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  border-radius: 3px;
+  margin-bottom: 0.25rem;
+  transition: background 0.1s ease;
+  text-decoration: none;
+  color: var(--fg);
+}
+
+.blog-list__entry:hover {
+  background: var(--current-line);
+  color: var(--fg);
+  text-decoration: none;
+}
+
+.blog-list__entry-title {
+  color: var(--green);
+}
+
+.blog-list__entry-desc {
+  color: var(--comment);
+  font-size: 0.85rem;
+  margin-left: 1rem;
+}
+
+.blog-list__entry-date {
+  color: var(--purple);
+  font-size: 0.8rem;
+  margin-left: 1rem;
+}
+
+.blog-list__entry-tags {
+  color: var(--cyan);
+  font-size: 0.8rem;
+  margin-left: 0.5rem;
+}
+
+.blog-list__empty {
+  color: var(--comment);
+  font-style: italic;
+  padding: 2rem;
+}

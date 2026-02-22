@@ -1,0 +1,91 @@
+---
+import NeoVimLayout from '../layouts/NeoVimLayout.astro';
+import { siteConfig } from '../data/site';
+
+const socials = [
+  { icon: 'Email', url: `mailto:${siteConfig.socials.email}`, display: siteConfig.socials.email },
+  { icon: 'GitHub', url: siteConfig.socials.github, display: siteConfig.socials.github.replace('https://', '') },
+  { icon: 'LinkedIn', url: siteConfig.socials.linkedin, display: siteConfig.socials.linkedin.replace('https://', '') },
+];
+---
+
+<NeoVimLayout title="Contact" filename="contact.sh" filetype="bash">
+  <div class="code" role="presentation">
+    <!-- Shebang & comments -->
+    <div class="code-line anim-line" style="--i: 0">
+      <span class="line-nr">1</span>
+      <span class="line-content"><span class="syn-comment">#!/bin/bash</span></span>
+    </div>
+    <div class="code-line anim-line" style="--i: 1">
+      <span class="line-nr">2</span>
+      <span class="line-content"><span class="syn-comment"># contact.sh — Let's connect</span></span>
+    </div>
+    <div class="code-line anim-line" style="--i: 2">
+      <span class="line-nr">3</span>
+      <span class="line-content"></span>
+    </div>
+
+    <!-- Banner -->
+    <div class="code-line anim-line" style="--i: 3">
+      <span class="line-nr">4</span>
+      <span class="line-content"><span class="syn-function">echo</span> <span class="syn-string">"======================================"</span></span>
+    </div>
+    <div class="code-line anim-line" style="--i: 4">
+      <span class="line-nr">5</span>
+      <span class="line-content"><span class="syn-function">echo</span> <span class="syn-string">"  Get in touch"</span></span>
+    </div>
+    <div class="code-line anim-line" style="--i: 5">
+      <span class="line-nr">6</span>
+      <span class="line-content"><span class="syn-function">echo</span> <span class="syn-string">"======================================"</span></span>
+    </div>
+    <div class="code-line anim-line" style="--i: 6">
+      <span class="line-nr">7</span>
+      <span class="line-content"></span>
+    </div>
+
+    <!-- Social links -->
+    {socials.map((s, i) => (
+      <div class="code-line anim-line" style={`--i: ${7 + i}`}>
+        <span class="line-nr">{8 + i}</span>
+        <span class="line-content">
+          <span class="syn-function">echo</span> <span class="syn-string">"  {s.icon.padEnd(10)}</span><span class="syn-operator"> &rarr; </span>
+          <a href={s.url} target="_blank" rel="noopener noreferrer" class="contact-link">
+            <span class="syn-constant">{s.display}</span>
+          </a>
+          <span class="syn-string">"</span>
+        </span>
+      </div>
+    ))}
+
+    <!-- Blank -->
+    <div class="code-line anim-line" style={`--i: ${7 + socials.length}`}>
+      <span class="line-nr">{8 + socials.length}</span>
+      <span class="line-content"></span>
+    </div>
+
+    <!-- Fun message -->
+    <div class="code-line anim-line" style={`--i: ${8 + socials.length}`}>
+      <span class="line-nr">{9 + socials.length}</span>
+      <span class="line-content"><span class="syn-comment"># Or just open an issue on my repo!</span></span>
+    </div>
+    <div class="code-line anim-line" style={`--i: ${9 + socials.length}`}>
+      <span class="line-nr">{10 + socials.length}</span>
+      <span class="line-content">
+        <span class="syn-constant">$</span> <span class="syn-function">gh</span> <span class="syn-property">issue create</span> <span class="syn-operator">--repo</span> <span class="syn-string">vaibhav135/personal-website</span><span class="cursor-block"></span>
+      </span>
+    </div>
+  </div>
+</NeoVimLayout>
+
+<style>
+  .contact-link {
+    color: var(--cyan);
+    text-decoration: none;
+    transition: color 0.15s ease, text-shadow 0.15s ease;
+  }
+
+  .contact-link:hover {
+    color: var(--purple);
+    text-shadow: 0 0 8px var(--purple);
+  }
+</style>

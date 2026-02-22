@@ -1,0 +1,59 @@
+/* ============================================
+   Neovim Layout System
+   ============================================ */
+
+.nvim {
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  height: 100dvh;
+  width: 100dvw;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* Editor = sidebar + buffer */
+.nvim__editor {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Buffer (scrollable content area) */
+.nvim__buffer {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+}
+
+.nvim__buffer-content {
+  flex: 0 0 auto;
+  padding: 0.5rem 0;
+}
+
+/* Vim tilde lines below content */
+.nvim__tilde {
+  flex: 1 0 auto;
+  min-height: 120px;
+  padding: 0 1rem 0 3.5rem;
+  user-select: none;
+  pointer-events: none;
+}
+
+.nvim__tilde-line {
+  color: var(--purple);
+  opacity: 0;
+  animation: tilde-fade 0.3s ease forwards;
+  animation-delay: calc(var(--i, 0) * 30ms);
+  line-height: var(--line-height);
+}
+
+/* ---- Responsive ---- */
+
+@media (max-width: 768px) {
+  .nvim__editor {
+    grid-template-columns: 1fr;
+  }
+}

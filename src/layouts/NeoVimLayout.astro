@@ -1,0 +1,79 @@
+---
+import '../styles/global.css';
+import TabLine from '../components/TabLine.astro';
+import FileTree from '../components/FileTree.astro';
+import StatusLine from '../components/StatusLine.astro';
+import CommandLine from '../components/CommandLine.astro';
+import { siteConfig } from '../data/site';
+import { ClientRouter } from 'astro:transitions';
+
+interface Props {
+  title: string;
+  filename: string;
+  filetype?: string;
+  description?: string;
+}
+
+const {
+  title,
+  filename,
+  filetype = 'typescript',
+  description = siteConfig.description,
+} = Astro.props;
+
+const tildes = Array.from({ length: 15 }, (_, i) => i);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="generator" content={Astro.generator} />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content={`${title} | ${siteConfig.name}`} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={Astro.url.href} />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- JetBrains Mono from Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
+
+    <title>{title} | {siteConfig.name}</title>
+    <ClientRouter />
+  </head>
+  <body>
+    <div class="nvim">
+      <TabLine currentFile={filename} />
+
+      <div class="nvim__editor">
+        <FileTree currentFile={filename} />
+
+        <main class="nvim__buffer" transition:animate="fade">
+          <div class="nvim__buffer-content">
+            <slot />
+          </div>
+
+          <!-- Vim tilde lines -->
+          <div class="nvim__tilde" aria-hidden="true">
+            {tildes.map((i) => (
+              <div class="nvim__tilde-line" style={`--i: ${i}`}>~</div>
+            ))}
+          </div>
+        </main>
+      </div>
+
+      <StatusLine filename={filename} filetype={filetype} />
+      <CommandLine />
+    </div>
+  </body>
+</html>
