@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://personal-website.pages.dev/sitemap-index.xml
+Sitemap: https://vaibhav135.dev/sitemap-index.xml
