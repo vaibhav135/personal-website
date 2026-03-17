@@ -3,6 +3,7 @@ title: "Transformers: From Zero to the Paper"
 description: "A dense, beginner-to-advanced breakdown of 'Attention Is All You Need' — the 2017 paper that changed everything. Math dissected, intuition built, interactive visualizations included."
 pubDate: 2026-03-17
 tags: ["ai", "ml", "transformers", "deep-dive"]
+order: 1
 ---
 
 import AttentionWidget from '../../components/interactive/AttentionWidget.tsx';
@@ -14,6 +15,9 @@ import PositionalEncoding from '../../components/interactive/PositionalEncoding.
 import TrainingLoss from '../../components/interactive/TrainingLoss.tsx';
 import RNNvsTransformer from '../../components/interactive/RNNvsTransformer.tsx';
 import WeightedSumAnimation from '../../components/interactive/WeightedSumAnimation.tsx';
+import EncoderDecoder from '../../components/interactive/EncoderDecoder.tsx';
+import RNNForgetting from '../../components/interactive/RNNForgetting.tsx';
+import WordToVector from '../../components/interactive/WordToVector.tsx';
 
 > This is my attempt to understand the Transformer paper from scratch — no shortcuts. I'm not an ML researcher. I'm a fullstack engineer who kept bumping into "attention", "transformers", "embeddings" in my work and got tired of nodding along. So I went deep. This is what I found.
 >
@@ -52,6 +56,8 @@ Consider: *"The cat, which had been sitting quietly by the window for most of th
 
 By the time the RNN gets to "was", the hidden state has been updated 15+ times since "cat". The signal about "cat" — which "was" needs to agree with — has been diluted by everything in between. The model effectively forgets.
 
+<RNNForgetting client:load />
+
 Researchers tried various fixes — LSTMs, GRUs, attention add-ons on top of RNNs. But the Transformer paper proposed something radical: **throw out the recurrence entirely**. Process all words simultaneously. Use a mechanism called **attention** to let every word talk to every other word directly.
 
 This single insight unlocked the modern AI era.
@@ -70,7 +76,11 @@ But here's the key insight: you don't want random numbers. You want *similar wor
 
 In the original Transformer paper, each word is a **512-dimensional vector** — a list of 512 numbers. These aren't hand-crafted. They're learned during training. The model figures out what numbers best capture meaning.
 
-Here's a simplified version with 6 dimensions to build intuition:
+First — how does a word even become a vector? Walk through it:
+
+<WordToVector client:load />
+
+Here's a simplified version with 6 dimensions to build intuition for how similar words cluster together:
 
 <EmbeddingExplainer client:load />
 
@@ -81,6 +91,12 @@ A few things to notice:
 - This is why `king - man + woman ≈ queen` works — vector arithmetic on embeddings preserves semantic relationships
 
 **In the real model**, embeddings are 512-4096 dimensions and learned entirely from data. Nobody says "dimension 47 means royalty". The model discovers its own representation.
+
+**One important limitation of raw embeddings:** they're static. The word "bank" always maps to the same vector — whether you mean a river bank or a financial bank. The embedding table has no concept of context.
+
+This is exactly the problem attention solves. Before attention, "bank" is always the same numbers. After attention has run, "bank" in "I deposited money at the bank" becomes a completely different vector — one that has absorbed meaning from "deposited" and "money". Same word, different context, different representation.
+
+That bridge — from static embeddings to contextual representations — is what the next section is about.
 
 ---
 
@@ -388,6 +404,10 @@ Input embeddings + Positional encoding
 ```
 
 This block repeats **6 times** in the encoder. Each pass refines the representation — like editing a document multiple times, each pass catching what the previous missed.
+
+### Animation: encoder → memory → decoder
+
+<EncoderDecoder client:load />
 
 ### Residual connections ("Add & Norm")
 

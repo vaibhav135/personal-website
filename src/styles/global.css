@@ -1259,6 +1259,16 @@ a:hover {
   font-weight: 700;
 }
 
+.training-loss__btn--nav {
+  padding: 0.3rem 0.6rem;
+  min-width: 2rem;
+}
+
+.training-loss__btn--nav:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
 .training-loss__btn--play:hover {
   opacity: 0.85;
 }

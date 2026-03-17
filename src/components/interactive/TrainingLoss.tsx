@@ -147,7 +147,22 @@ export default function TrainingLoss() {
           {isPlaying ? '⏸ Pause' : step >= TOTAL_STEPS - 1 ? '↺ Replay' : '▶ Play'}
         </button>
         <button onClick={reset} className="training-loss__btn">
-          Reset
+          ↺
+        </button>
+        {/* Prev / Next — jump by 10 steps */}
+        <button
+          className="training-loss__btn training-loss__btn--nav"
+          disabled={step <= 0}
+          onClick={() => { pause(); setStep(s => Math.max(s - 10, 0)); }}
+        >
+          ←
+        </button>
+        <button
+          className="training-loss__btn training-loss__btn--nav"
+          disabled={step >= TOTAL_STEPS - 1}
+          onClick={() => { pause(); setStep(s => Math.min(s + 10, TOTAL_STEPS - 1)); }}
+        >
+          →
         </button>
         <input
           type="range"
