@@ -1,0 +1,540 @@
+---
+title: "Transformers: From Zero to the Paper"
+description: "A dense, beginner-to-advanced breakdown of 'Attention Is All You Need' — the 2017 paper that changed everything. Math dissected, intuition built, interactive visualizations included."
+pubDate: 2026-03-17
+tags: ["ai", "ml", "transformers", "deep-dive"]
+---
+
+import AttentionWidget from '../../components/interactive/AttentionWidget.tsx';
+import SoftmaxVisualizer from '../../components/interactive/SoftmaxVisualizer.tsx';
+import GradientVanishing from '../../components/interactive/GradientVanishing.tsx';
+import EmbeddingExplainer from '../../components/interactive/EmbeddingExplainer.tsx';
+import MultiHeadAttention from '../../components/interactive/MultiHeadAttention.tsx';
+import PositionalEncoding from '../../components/interactive/PositionalEncoding.tsx';
+import TrainingLoss from '../../components/interactive/TrainingLoss.tsx';
+import RNNvsTransformer from '../../components/interactive/RNNvsTransformer.tsx';
+import WeightedSumAnimation from '../../components/interactive/WeightedSumAnimation.tsx';
+
+> This is my attempt to understand the Transformer paper from scratch — no shortcuts. I'm not an ML researcher. I'm a fullstack engineer who kept bumping into "attention", "transformers", "embeddings" in my work and got tired of nodding along. So I went deep. This is what I found.
+>
+> Read it top to bottom the first time. Re-read sections later — they hit differently once the full picture is in your head.
+>
+> **New to ML math?** Read [Before You Read the Transformer Paper](/blog/before-transformers-the-math-you-need) first — it covers vectors, matrices, dot products, tokens, and everything else this article assumes.
+
+---
+
+## 0. Before we start — what problem are we solving?
+
+It's 2017. The best AI systems for language tasks (translation, summarization, question answering) are built on **Recurrent Neural Networks (RNNs)**.
+
+An RNN reads a sentence like a human reads it — one word at a time, left to right. At each step, it carries a "memory" forward: a vector that represents everything it has seen so far.
+
+```
+"The cat sat on the mat"
+  ↓
+ [The] → hidden state h1
+         ↓
+        [cat] → hidden state h2
+                 ↓
+                [sat] → hidden state h3
+                         ...
+```
+
+This feels intuitive. But it has two deep problems.
+
+**Problem 1: You can't parallelize it.**
+
+Each word depends on the previous hidden state. Word 4 can't be computed until word 3 is done. Word 3 can't be computed until word 2 is done. On a GPU — which is designed to do thousands of things simultaneously — this is a catastrophic waste. Training is slow. Very slow.
+
+**Problem 2: Long-range dependencies break down.**
+
+Consider: *"The cat, which had been sitting quietly by the window for most of the afternoon, **was** tired."*
+
+By the time the RNN gets to "was", the hidden state has been updated 15+ times since "cat". The signal about "cat" — which "was" needs to agree with — has been diluted by everything in between. The model effectively forgets.
+
+Researchers tried various fixes — LSTMs, GRUs, attention add-ons on top of RNNs. But the Transformer paper proposed something radical: **throw out the recurrence entirely**. Process all words simultaneously. Use a mechanism called **attention** to let every word talk to every other word directly.
+
+This single insight unlocked the modern AI era.
+
+<RNNvsTransformer client:load />
+
+---
+
+## 1. Words as vectors — embeddings
+
+Before we get to attention, we need to answer something that sounds basic but isn't: *how does a computer even represent a word?*
+
+You can't feed "cat" into a matrix multiplication. You need numbers. The solution is called an **embedding** — you map every word to a fixed-length list of numbers (a vector).
+
+But here's the key insight: you don't want random numbers. You want *similar words to have similar vectors*. "Cat" and "dog" should be close together in vector space. "Cat" and "democracy" should be far apart.
+
+In the original Transformer paper, each word is a **512-dimensional vector** — a list of 512 numbers. These aren't hand-crafted. They're learned during training. The model figures out what numbers best capture meaning.
+
+Here's a simplified version with 6 dimensions to build intuition:
+
+<EmbeddingExplainer client:load />
+
+A few things to notice:
+- "king" and "queen" are very similar — they share royalty, human, size
+- "cat" and "dog" are similar — both animal, domestic
+- "king" and "cat" are far apart — almost nothing in common
+- This is why `king - man + woman ≈ queen` works — vector arithmetic on embeddings preserves semantic relationships
+
+**In the real model**, embeddings are 512-4096 dimensions and learned entirely from data. Nobody says "dimension 47 means royalty". The model discovers its own representation.
+
+---
+
+## 2. The attention mechanism — the formula, completely dissected
+
+Now we have words as vectors. The problem: a static embedding for "bank" doesn't know if we're talking about a river bank or a financial bank. Context matters.
+
+**Attention is the mechanism that lets every word look at every other word and update its meaning based on what it finds.**
+
+### The intuition first
+
+Imagine you're in a library looking for information about "bank":
+
+- You have a **query**: "what kind of bank is this?"
+- Every book has a **key** on its spine: a short label of what it contains
+- Every book has **values**: its actual content
+
+You scan all the spines, figure out which are most relevant to your query, and blend information from those books proportionally. You don't pick just one book — you pull a weighted mix of several.
+
+**That's exactly what attention does — but with words instead of books.**
+
+### Q, K, V — where do they come from?
+
+Every word's embedding (512 numbers) gets multiplied by three separate learned weight matrices to produce three new vectors:
+
+```
+word embedding (512d)
+       ↓
+  × Wq → Query (64d)    "what am I looking for?"
+  × Wk → Key   (64d)    "what do I contain?"
+  × Wv → Value (64d)    "here's my actual information"
+```
+
+These weight matrices — Wq, Wk, Wv — are **learned during training**. Nobody programs what Q, K, V should mean. The model discovers what projections are useful on its own, driven entirely by which transformations reduce the loss.
+
+Important: Q, K, V are all derived from the **same** word embedding. One word, three different projections, three different roles. The same word simultaneously asks a question (Q), advertises what it contains (K), and holds its actual content (V).
+
+### The formula
+
+```
+Attention(Q, K, V) = softmax( Q × Kᵀ / √dₖ ) × V
+```
+
+This looks dense. Let's slow down and go through every single symbol.
+
+---
+
+### Symbol by symbol: `Q × Kᵀ`
+
+**What is `Kᵀ`?**
+
+The superscript `ᵀ` means **transpose** — flip the matrix so rows become columns and columns become rows.
+
+Why? Because of how matrix multiplication works. Q has shape `(6 × 64)` — 6 words, each a 64-dimensional query vector. K also has shape `(6 × 64)`. You can't multiply two `(6×64)` matrices directly — the dimensions don't align.
+
+Transposing K gives `Kᵀ` with shape `(64 × 6)`. Now:
+
+```
+Q     × Kᵀ    = scores
+(6×64)  (64×6)   (6×6)
+```
+
+The result is a `6×6` matrix — one score for every pair of words. Row 1 = scores for "I" against every word. Row 6 = scores for "bank" against every word.
+
+**What does each score number mean?**
+
+Each entry is a **dot product** between one query vector and one key vector. Concretely, for "bank" querying "deposited":
+
+```
+Q["bank"]   = [0.8, 0.2, 0.9, 0.1, ...]   ← 64 numbers
+K["deposited"] = [0.7, 0.3, 0.8, 0.2, ...] ← 64 numbers
+
+score = (0.8×0.7) + (0.2×0.3) + (0.9×0.8) + (0.1×0.2) + ...
+      = 0.56 + 0.06 + 0.72 + 0.02 + ...
+      = some positive number  ← high → relevant
+```
+
+The dot product is high when both vectors have large values in the **same dimensions** — meaning both words care about the same features. "Bank" and "deposited" both have financial features in their learned projections, so their dot product is large. "Bank" and "the" don't share much — their dot product is near zero.
+
+**Why dot product measures similarity geometrically:**
+
+Two vectors pointing in the same direction multiply to a high positive number. Two vectors perpendicular to each other multiply to zero. Two vectors pointing opposite directions multiply to a negative number. The dot product is literally the cosine of the angle between them, scaled by their magnitudes.
+
+So `Q × Kᵀ` produces a full grid of: "how much does each word's question align with each other word's advertised content?"
+
+---
+
+### Symbol by symbol: `/ √dₖ`
+
+`dₖ` is the dimension of the key vectors. In the original paper, `dₖ = 64`. So we divide every score by `√64 = 8`.
+
+**Why is this necessary?**
+
+With 64-dimensional vectors, the dot product is a sum of 64 multiplied pairs. Each pair is roughly order 1, so the sum grows proportional to the number of dimensions. Standard deviation of the raw scores grows as `√dₖ`.
+
+Without dividing by `√dₖ`, scores for a 64-dimensional space have standard deviation ≈ 8. Scores like `[-18, 3, 25, -7, 12]` are common. Feed those into softmax:
+
+```
+softmax([-18, 3, 25, -7, 12])
+→ [≈0, ≈0, ≈1, ≈0, ≈0]   ← completely collapsed
+```
+
+The model effectively picks one word and ignores everything else. No blending. No nuance.
+
+After dividing by √64 = 8, those same scores become `[-2.25, 0.375, 3.125, -0.875, 1.5]`. Now softmax produces something like `[0.01, 0.09, 0.58, 0.04, 0.28]` — a real distribution. The model can blend proportionally.
+
+**Why does softmax collapse with large scores?**
+
+Softmax uses `eˣ`. That function explodes:
+
+```
+e¹  = 2.7
+e²  = 7.4
+e¹⁰ = 22,026
+e²⁵ = 72 billion
+```
+
+When one score is 25 and others are near 0, `e²⁵` dominates so completely that all other probabilities become mathematically zero. The output is `[1.0, 0.0, 0.0, 0.0]`.
+
+And when softmax saturates like this, something worse happens during training: the gradient — the signal that flows backwards to update weights — becomes nearly zero at saturation. The model can't correct itself. Layers stop learning permanently. This is **gradient vanishing**.
+
+Dividing by `√dₖ` keeps variance ≈ 1.0 and breaks this entire chain:
+
+```
+large dot products (no scaling)
+  → softmax receives extreme scores
+  → output collapses to [1, 0, 0, 0]
+  → derivative at saturation ≈ 0
+  → gradient vanishes during backprop
+  → weights stop updating
+  → layers stop learning
+```
+
+One symbol, `√dₖ`, prevents all of this.
+
+### Interactive: see softmax collapse
+
+<SoftmaxVisualizer client:load />
+
+### Interactive: gradient vanishing
+
+<GradientVanishing client:load />
+
+---
+
+### Symbol by symbol: `softmax(...)`
+
+Softmax takes the scaled score vector for one query word and converts it into probabilities that sum to exactly 1.0:
+
+```
+softmax(xᵢ) = eˣⁱ / Σ eˣʲ
+
+scores  = [1.2, 2.5, 3.1, 0.4]
+softmax = [0.07, 0.26, 0.57, 0.10]   ← sum = 1.0
+```
+
+Two things softmax does:
+
+**1. Normalizes** — all scores become positive and sum to 1. Now they can be used as weights in a weighted average.
+
+**2. Amplifies the winner** — because of `eˣ`, the highest score gets a disproportionately large share. The most relevant word gets even more emphasis. This is intentional — you want the model to focus, not spread attention uniformly.
+
+Why not just divide by the sum directly (regular normalization)? Because softmax is **differentiable everywhere** — its derivative is clean and well-behaved, which means gradients flow smoothly during training. Regular normalization has edge cases that cause training instability.
+
+---
+
+### Symbol by symbol: `× V`
+
+Now we have a row of attention probabilities for each query word — a weight for every word in the sentence. The final step multiplies these weights by the Value vectors and sums:
+
+```
+output["bank"] = 0.02 × V["I"]
+               + 0.65 × V["deposited"]
+               + 0.20 × V["money"]
+               + 0.03 × V["at"]
+               + 0.04 × V["the"]
+               + 0.06 × V["bank"]
+```
+
+**What is actually in V?**
+
+V is a 64-dimensional projection of the word's embedding — a compressed version of the word's actual information content. Unlike Q and K which are used only for computing relevance scores, V is what gets actually mixed into the output.
+
+Think of it this way:
+- Q and K are used to decide **how much** to attend to each word
+- V is **what** you actually get when you attend to that word
+
+**What does the output mean?**
+
+The output for "bank" is a new 64-dimensional vector. It's a weighted blend of all V vectors in the sentence, pulled strongly toward "deposited" (65%) and "money" (20%), weakly toward everything else.
+
+This output is no longer a static dictionary definition of "bank". It's "bank, as it exists in this specific financial sentence, having absorbed contextual meaning from deposited and money". 
+
+The same word "bank" in "I sat by the river bank" would produce a completely different output — its V vector gets pulled toward "river" and "sat" instead. **Same word, same Q/K/V matrices, totally different output.** That's the entire mechanism.
+
+**Output shape:**
+
+```
+attention weights  ×  V            =  output
+(6 × 6)              (6 × 64)         (6 × 64)
+```
+
+Six words go in. Six contextually enriched vectors come out. Each output vector is the same size as V (64d), ready to be fed into the next sublayer.
+
+### Animation: watch the weighted sum build
+
+<WeightedSumAnimation client:load />
+
+### Interactive: feel the full formula
+
+<AttentionWidget client:load />
+
+Try clicking "I" vs "bank" — the entire score matrix, scaling, softmax, and weighted sum all update live. "I" mostly attends to itself. "bank" pulls hard toward "deposited" and "money" — because their Q/K dot products are highest.
+
+---
+
+## 3. Multi-head attention — looking from multiple angles
+
+One attention pass gives you one "perspective" on relationships. But language is rich. The word "bank" has:
+
+- A **semantic** relationship to "deposited" and "money"
+- A **grammatical** relationship to "I" (subject-object)
+- A **positional** relationship to nearby words
+- A **coreference** relationship to any pronouns referring to it later
+
+One head can only capture one of these at a time.
+
+**Multi-head attention** runs attention multiple times in parallel, each with its own learned Wq, Wk, Wv matrices:
+
+```
+Input
+  ↓
+Head 1 (Wq₁, Wk₁, Wv₁) → output 1
+Head 2 (Wq₂, Wk₂, Wv₂) → output 2
+...
+Head 8 (Wq₈, Wk₈, Wv₈) → output 8
+  ↓
+Concatenate all 8 outputs (512d total)
+  ↓
+× Wo → final output (512d)
+```
+
+Nobody tells each head what to specialize in. The specializations **emerge from training** — the model discovers that dividing attention into multiple perspectives is more useful than one big pass.
+
+### Interactive: see what each head learns
+
+<MultiHeadAttention client:load />
+
+Click individual heads to see how each one attends differently to the same query word "bank". Head 2 (semantics) pulls hard toward "deposited" and "money". Head 1 (syntax) pays more attention to the subject "I". Head 4 (position) cares about adjacent words.
+
+The original paper uses **8 heads**, each on 64-dimensional Q/K/V vectors (512 / 8 = 64). Total compute is similar to one big attention pass — but the representation is richer.
+
+---
+
+## 4. Positional encoding — teaching word order
+
+Here's a subtle problem: attention looks at all words simultaneously. It has no inherent sense of order. "cat sat" and "sat cat" produce the same scores.
+
+The paper's solution: **add a position-specific vector to each word's embedding** before it enters the model.
+
+They use sine and cosine waves of different frequencies:
+
+```
+PE(pos, 2i)   = sin(pos / 10000^(2i/d_model))
+PE(pos, 2i+1) = cos(pos / 10000^(2i/d_model))
+```
+
+Each position gets a unique "fingerprint" across all dimensions — a pattern no other position shares. This fingerprint is **added** to the word embedding before anything else happens.
+
+Why sine/cosine specifically?
+- Bounded between -1 and 1 — won't overwhelm the word embedding
+- The relative distance between positions is constant regardless of absolute position — "3 positions apart" means the same thing at position 1 as at position 100
+- No learned parameters needed — computed, not trained
+
+### Interactive: the position fingerprint
+
+<PositionalEncoding client:load />
+
+Notice that "the" appears twice in "The cat sat on the mat" — at position 0 and position 4. Same word, completely different positional encoding. Same word embedding + different position encoding = different input to the model. That's how it knows word order.
+
+---
+
+## 5. The full architecture
+
+Now everything assembles. One **encoder block**:
+
+```
+Input embeddings + Positional encoding
+          ↓
+  ┌───────────────────────┐
+  │  Multi-Head           │
+  │  Self-Attention       │
+  └───────────────────────┘
+          ↓
+    Add & LayerNorm          ← residual connection
+          ↓
+  ┌───────────────────────┐
+  │  Feed-Forward         │
+  │  Network              │
+  └───────────────────────┘
+          ↓
+    Add & LayerNorm          ← residual connection
+          ↓
+     (next block × 6)
+```
+
+This block repeats **6 times** in the encoder. Each pass refines the representation — like editing a document multiple times, each pass catching what the previous missed.
+
+### Residual connections ("Add & Norm")
+
+Each sublayer adds its output *to its own input* before normalizing:
+
+```
+output = LayerNorm(x + Sublayer(x))
+```
+
+Even if a sublayer learns nothing useful, the original information flows through unchanged. It's a bypass highway — makes training very deep networks stable. Without residuals, gradients struggle to flow back to early layers.
+
+### The decoder — and why it's different
+
+The decoder has three sublayers instead of two:
+
+```
+Output embeddings (shifted right) + Positional encoding
+          ↓
+  ┌───────────────────────┐
+  │  Masked Self-         │
+  │  Attention            │  ← can only see past positions
+  └───────────────────────┘
+          ↓
+    Add & LayerNorm
+          ↓
+  ┌───────────────────────┐
+  │  Cross-Attention      │  ← Q from decoder, K/V from encoder
+  └───────────────────────┘
+          ↓
+    Add & LayerNorm
+          ↓
+  ┌───────────────────────┐
+  │  Feed-Forward         │
+  │  Network              │
+  └───────────────────────┘
+          ↓
+    Add & LayerNorm
+```
+
+**Masking:**
+
+When generating word 4, the model can't "cheat" by looking at words 5, 6, 7. A mask zeros out future positions. The model must learn to predict each word using only what came before.
+
+**Cross-attention:**
+
+The bridge between understanding and generating. Queries come from the decoder ("what am I trying to say?"), Keys and Values come from the encoder output ("what did the input mean?").
+
+### The feed-forward layer — the "thinking" layer
+
+After attention gathers context, the feed-forward layer processes it:
+
+```
+hidden = ReLU(W1 × input + b1)   ← expand: 512 → 2048
+output = W2 × hidden + b2        ← compress: 2048 → 512
+```
+
+The expand-then-compress pattern gives the network room to represent many patterns before selecting relevant ones. A lot of the model's factual knowledge lives in these W1, W2 matrices — encoded associations learned from training data.
+
+---
+
+## 6. Where do weights come from? Training.
+
+All those matrices — Wq, Wk, Wv, W1, W2, Wo — start as random numbers. The network knows nothing.
+
+Training is a loop:
+
+```
+1. Feed in a training example (e.g. English → German pair)
+2. Model makes a prediction (terrible at first — pure noise)
+3. Loss function measures how wrong: one number, high = bad
+4. Backpropagation: walk backwards through every layer,
+   compute gradient for every single weight
+5. Gradient descent: update every weight slightly in the direction of less wrong
+6. Repeat billions of times
+```
+
+Each loop updates every weight by a tiny amount. After billions of examples across months of compute on thousands of GPUs, the weights converge.
+
+**What "a trained model" means physically:** a giant file of numbers. GPT-4 has roughly 1.8 trillion. That file *is* the model — load it into the architecture and it "knows" things. Nobody fully understands how the knowledge is encoded in those numbers. That's the core of interpretability research.
+
+**Learning rate:** the size of each weight update (typically 0.0001 or smaller). Too big and you overshoot. Too small and training takes forever.
+
+### Interactive: watch loss drop during training
+
+<TrainingLoss client:load />
+
+Hit play and watch the loss curve. High at start (gibberish), dropping fast (patterns forming), then slowly leveling off (converging). The model goes from knowing nothing to knowing a lot — just by incrementally correcting millions of numbers over and over.
+
+---
+
+## 7. Why this changed everything
+
+Three properties that made Transformers revolutionary:
+
+**1. Parallelizable.** Unlike RNNs, all words process simultaneously. GPUs do their job. Training that took weeks dropped to days. This made scaling feasible.
+
+**2. No forgetting.** Attention connects any two words directly regardless of distance. The signal from word 1 reaches word 100 just as strongly as word 2. Long-range dependencies solved.
+
+**3. Scales.** Stack more layers, add more heads, train on more data — the model keeps getting smarter. This scaling property eventually produced GPT-3 (175B parameters), GPT-4, Claude, Gemini. Every single one of them is a Transformer at its core.
+
+The paper was published in June 2017. By 2018, BERT had revolutionized NLP benchmarks. By 2020, GPT-3 shocked the world. By 2022, ChatGPT. By 2024, AI is everywhere.
+
+It all traces back to eight pages and one formula:
+
+```
+Attention(Q, K, V) = softmax( Q × Kᵀ / √dₖ ) × V
+```
+
+---
+
+## 8. Test yourself
+
+Don't move on until you can answer these without looking up:
+
+**Conceptual:**
+- Why did RNNs fail at long-range dependencies?
+- What does it mean for a word to have a 512-dimensional embedding?
+- In your own words: what do Q, K, V each represent?
+- Why is the weighted sum in step 4 better than just picking the highest attention score?
+
+**The math:**
+- What is `Q × Kᵀ` computing, and why?
+- Why do we divide by `√dₖ`? What goes wrong without it?
+- What is gradient vanishing and why does it happen with large softmax scores?
+
+**Architecture:**
+- What's the difference between self-attention and cross-attention?
+- Why does the decoder use masking?
+- What do residual connections prevent?
+- Why does multi-head attention use 8 heads instead of one big attention pass?
+
+**Big picture:**
+- Why are Transformers faster to train than RNNs?
+- What physically is a "trained model"?
+- How does the attention mechanism relate to RAG?
+
+If you can answer all of these, you understand the Transformer paper. Not just "I've heard of attention" — actually understand it.
+
+---
+
+## Further reading
+
+- [Attention Is All You Need (arxiv)](https://arxiv.org/abs/1706.03762) — the original paper, surprisingly readable
+- [The Illustrated Transformer](https://jalammar.github.io/illustrated-transformer/) — Jay Alammar's visual walkthrough, the best companion to this post
+- [A Mathematical Framework for Transformer Circuits](https://transformer-circuits.pub/2021/framework/index.html) — for when you want to go deeper into mechanistic interpretability
+- [Let's build GPT from scratch](https://www.youtube.com/watch?v=kCc8FmEb1nY) — Andrej Karpathy building a transformer from scratch in code, ~2 hours, worth every minute
+
+---
+
+*Last updated: March 2026. I'll keep revising this as my understanding deepens.*
