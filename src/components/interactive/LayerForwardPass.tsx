@@ -158,6 +158,22 @@ export default function LayerForwardPass() {
           {playing ? '↺ Reset' : currentStep < 0 ? '▶ Play' : '↺ Replay'}
         </button>
 
+        {/* Prev / Next */}
+        <button
+          className="layer-fwd__btn layer-fwd__btn--nav"
+          disabled={playing || currentStep <= 0}
+          onClick={() => { if (!playing && currentStep > 0) setCurrentStep(s => s - 1); }}
+        >
+          ←
+        </button>
+        <button
+          className="layer-fwd__btn layer-fwd__btn--nav"
+          disabled={playing || currentStep >= STEPS.length - 1}
+          onClick={() => { if (!playing) setCurrentStep(s => Math.min(s + 1, STEPS.length - 1)); }}
+        >
+          →
+        </button>
+
         {/* Step dots */}
         <div className="layer-fwd__dots">
           {STEPS.map((s, i) => (

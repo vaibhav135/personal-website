@@ -4,7 +4,17 @@ import { getCollection } from 'astro:content';
 
 const posts = (await getCollection('blog', ({ data }) => {
   return import.meta.env.PROD ? !data.draft : true;
-})).sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+})).sort((a, b) => {
+  // If both have explicit order, sort by order ascending
+  if (a.data.order !== undefined && b.data.order !== undefined) {
+    return a.data.order - b.data.order;
+  }
+  // Posts with order come before posts without
+  if (a.data.order !== undefined) return -1;
+  if (b.data.order !== undefined) return 1;
+  // Fall back to date descending
+  return b.data.pubDate.valueOf() - a.data.pubDate.valueOf();
+});
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString('en-US', {

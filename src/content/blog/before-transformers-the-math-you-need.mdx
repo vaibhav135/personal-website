@@ -1,23 +1,27 @@
 ---
 title: "Before You Read the Transformer Paper — The Math You Actually Need"
-description: "Vectors, matrices, dot products, derivatives, tokens, activation functions — everything the transformer article assumes you know, explained from scratch."
+description: "Vectors, matrices, dot products, derivatives, loss functions, backpropagation, neurons, overfitting — everything the transformer article assumes you know, explained from scratch."
 pubDate: 2026-03-17
 tags: ["ai", "ml", "math", "prerequisites"]
+order: 2
 ---
 
 import LayerForwardPass from '../../components/interactive/LayerForwardPass.tsx';
+import ActivationCurves from '../../components/interactive/ActivationCurves.tsx';
+import MatrixMultiply from '../../components/interactive/MatrixMultiply.tsx';
+import LossLandscape from '../../components/interactive/LossLandscape.tsx';
 
-> I wrote this because I kept bumping into words in the transformer article — "matrix multiplication", "dot product", "ReLU", "token" — and either skipping over them or half-understanding them. This is me going back and filling every single gap. No assumed knowledge. No skipping steps.
+> I wrote this because I kept bumping into words in the transformer article — "matrix multiplication", "loss function", "backpropagation", "neuron" — and either skipping over them or half-understanding them. This is me going back and filling every single gap. No assumed knowledge. No skipping steps.
 >
-> If you already know linear algebra, skip to the tokens section. Otherwise, start here.
+> Read this before the transformer article. Every concept here will be used there.
 
 ---
 
 ## 0. What even is a number in this context?
 
-Before vectors and matrices, let's get concrete about what numbers represent in ML.
+Before anything else — what does a number *represent* in ML?
 
-In normal programming, a number might be a user's age, a price, a count. In ML, numbers represent **meaning** — or more precisely, they represent *properties* of things.
+In normal programming, a number is a count, a price, an ID. In ML, numbers represent **meaning** — properties of things.
 
 When a model sees the word "cat", it doesn't see the letters C-A-T. It sees something like:
 
@@ -25,45 +29,139 @@ When a model sees the word "cat", it doesn't see the letters C-A-T. It sees some
 [0.2, 0.9, 0.1, 0.7, 0.3, ...]   ← 512 numbers
 ```
 
-Each number encodes some aspect of what "cat" means. That's it. The whole field of ML is about learning which numbers best capture meaning, and doing math on those numbers to produce useful outputs.
+Each number encodes some aspect of what "cat" means. The whole field of ML is about learning which numbers best capture meaning, and doing math on those numbers to produce useful outputs.
 
-Everything else in this article is just explaining what kinds of math, and why.
+Everything in this article is just explaining what kinds of math, and why.
 
 ---
 
-## 1. Vectors — a list of numbers with meaning
+## 1. What is a neural network — and what is "learning"?
 
-A **vector** is just a list of numbers. That's the whole definition.
+This is the question nobody stops to answer directly before throwing you into matrices and gradients. Let's answer it properly.
+
+### The problem that neural networks solve
+
+Traditional programming works like this:
+
+```
+you write the rules
+        ↓
+rules + input → output
+```
+
+You decide the logic. You write the `if` statements. The computer executes them.
+
+But some problems don't have rules you can write. How do you write a rule for "is this image a cat or a dog"? Or "what's the right translation for this sentence"? Or "what's the next word someone would say"?
+
+These problems have patterns — but the patterns are too complex, too numerous, too fuzzy to express as hand-written rules.
+
+Neural networks solve this with the opposite approach:
+
+```
+you give examples (input → correct output)
+        ↓
+the network figures out the rules itself
+```
+
+You don't write the logic. You show the network thousands or millions of examples, and it discovers its own internal representation of the patterns. The "rules" end up encoded as numbers — weights — inside the network.
+
+### What "learning" means mathematically
+
+Learning = finding the set of weights that makes the network produce the right output for any given input.
+
+More precisely: finding weights that **minimize the error** across all your training examples.
+
+That's it. The entire field of deep learning — billions of dollars of compute, thousands of researchers — is fundamentally about solving this one optimization problem: find the numbers (weights) that minimize the error (loss).
+
+Everything else — layers, attention, transformers — is about building the right *structure* for those weights to live in, so they can represent the patterns you care about.
+
+---
+
+## 2. What is a neuron?
+
+Before layers and matrices, understand what a single neuron does. Everything else builds on this.
+
+A **neuron** takes multiple inputs, multiplies each by a weight, sums them up, adds a bias, then passes the result through an activation function.
+
+```
+inputs: x₁, x₂, x₃
+weights: w₁, w₂, w₃
+bias: b
+
+neuron output = activation( w₁x₁ + w₂x₂ + w₃x₃ + b )
+```
+
+Concretely:
+
+```
+x₁ = 0.5  (maybe: "how royal is this word?")
+x₂ = 0.9  (maybe: "how human is this word?")
+x₃ = 0.2  (maybe: "how animate is this word?")
+
+w₁ = 1.2, w₂ = 0.8, w₃ = -0.3, b = 0.1
+
+sum = (1.2×0.5) + (0.8×0.9) + (-0.3×0.2) + 0.1
+    = 0.6 + 0.72 - 0.06 + 0.1
+    = 1.36
+
+output = ReLU(1.36) = 1.36   ← positive, passes through
+```
+
+**What does a neuron detect?**
+
+The weights determine what combination of inputs the neuron responds to. A neuron with high weights on "royal" and "human" fires strongly for words like "king" and "queen". A neuron with a negative weight on "animate" fires less for objects.
+
+Nobody programs this. The weights are learned. The network discovers on its own which combinations of inputs are useful to detect.
+
+**A layer is just many neurons running in parallel.**
+
+A layer with 512 neurons takes the same input vector and runs 512 of these computations simultaneously — each with its own set of weights — producing 512 outputs. That's the entire "layer" concept.
+
+---
+
+## 3. Vectors — a list of numbers with meaning
+
+A **vector** is just a list of numbers.
 
 ```
 [3, 7]          ← 2-dimensional vector
 [1, 4, 9]       ← 3-dimensional vector
-[0.2, 0.9, 0.1] ← 3-dimensional vector (decimals are fine)
+[0.2, 0.9, 0.1] ← 3-dimensional vector
 ```
 
-The word "dimensional" just means how many numbers are in the list. A 512-dimensional vector is a list of 512 numbers.
+"Dimensional" just means how many numbers are in the list. A 512-dimensional vector is a list of 512 numbers.
 
 ### Vectors as points in space
 
-Here's the intuition that makes everything click: **a vector is a point in space**.
+The intuition: **a vector is a point in space**.
 
-A 2D vector `[3, 7]` is a point on a flat map — 3 steps right, 7 steps up. A 3D vector `[1, 4, 9]` is a point in a room — 1 step right, 4 steps forward, 9 steps up.
+A 2D vector `[3, 7]` is a point on a flat map — 3 right, 7 up. A 3D vector `[1, 4, 9]` is a point in a room — 1 right, 4 forward, 9 up.
 
-A 512-dimensional vector is a point in 512-dimensional space. You can't visualize it, but the math works exactly the same way.
+A 512-dimensional vector is a point in 512-dimensional space. You can't visualize it, but the math works exactly the same.
 
-### Why this matters for ML
+### Why this matters
 
-Words are represented as high-dimensional vectors (512 or more numbers). Similar words end up as points that are *close together* in that space. "Cat" and "dog" are nearby. "Cat" and "democracy" are far apart.
+Words in a transformer are 512-dimensional vectors. Similar words end up as points that are *close together* in that space. "Cat" and "dog" are nearby. "Cat" and "democracy" are far apart.
 
 This means you can do geometry on words:
+- `king - man + woman ≈ queen` — vector arithmetic preserves semantic relationships
 - Distance between vectors = how different two words are
 - Direction of a vector = what "kind" of thing it is
 
-The famous example: `king - man + woman ≈ queen`. Subtract the "man" direction, add the "woman" direction, and you land near "queen". Vector arithmetic on meaning.
+### Why 512 dimensions and not 10 or 10,000?
+
+More dimensions = the model can encode more distinct properties of a word — more nuance, richer meaning.
+
+But more dimensions also means:
+- More weights to learn (more compute, more data needed)
+- More memory at inference time
+- Diminishing returns past a certain point
+
+512 was the sweet spot the original paper found. Modern models use 4096+ dimensions because they have far more compute and data.
 
 ---
 
-## 2. Matrices — a grid of numbers
+## 4. Matrices — a grid of numbers
 
 A **matrix** is a rectangular grid of numbers. Rows and columns.
 
@@ -73,108 +171,111 @@ A **matrix** is a rectangular grid of numbers. Rows and columns.
 └         ┘
 ```
 
-Matrices are how we store **transformations** — rules for converting one vector into another vector.
+Matrices store **transformations** — rules for converting one vector into another vector.
 
-Every weight matrix in a transformer (Wq, Wk, Wv, W1, W2...) is just a matrix. A big grid of numbers that the model learned during training.
+Every weight matrix in a transformer (Wq, Wk, Wv, W1, W2...) is a matrix. A big grid of numbers the model learned.
 
 ### Matrix multiplication — the most important operation in ML
 
-Matrix multiplication takes a vector and a matrix, and produces a new vector. It's the core operation that happens billions of times during both training and inference.
+Matrix multiplication takes a vector and a matrix, produces a new vector. It's the core operation that runs billions of times during training and inference.
 
-Here's the simplest possible example:
-
-```
-Input vector:  [2, 3]
-
-Weight matrix: ┌ 1  0 ┐
-               └ 0  2 ┘
-
-Output vector: [2×1 + 3×0,  2×0 + 3×2]
-             = [2,  6]
-```
-
-**What just happened?** The matrix *transformed* the input vector `[2, 3]` into a new vector `[2, 6]`. The first number stayed the same (multiplied by 1). The second number doubled (multiplied by 2).
-
-A more concrete breakdown — for each number in the output, you:
-1. Take the corresponding row of the matrix
-2. Multiply each element with the matching element of the input vector
-3. Sum them all up
+For each output value: take the corresponding row of the matrix, multiply element-by-element with the input, sum it all up.
 
 ```
-Output[0] = (2×1) + (3×0) = 2
-Output[1] = (2×0) + (3×2) = 6
+Input:  [2, 3]
+Matrix: ┌ 1  0 ┐
+        └ 0  2 ┘
+
+output[0] = (2×1) + (3×0) = 2
+output[1] = (2×0) + (3×2) = 6
+
+Output: [2, 6]
 ```
+
+### Interactive: edit the numbers, watch the output change
+
+<MatrixMultiply client:load />
 
 ### Why matrices are "learned"
 
-When we say "Wq is a learned weight matrix", we mean: during training, the model adjusts every number in that grid, thousands of times, until the transformation it performs produces useful outputs. The matrix starts as random noise and gradually becomes a meaningful transformation.
+When we say "Wq is a learned weight matrix" — during training, the model adjusts every number in that grid until the transformation it performs produces useful outputs. The matrix starts as random noise and becomes a meaningful transformation.
 
 In the transformer:
 - Wq transforms a word's embedding into its "Query" — what it's looking for
 - Wk transforms it into its "Key" — what it contains
 - Wv transforms it into its "Value" — its actual information
 
-Same input embedding, three different matrices, three completely different outputs. That's the whole Q, K, V setup.
+Same input embedding, three different matrices, three completely different outputs.
 
 ---
 
-## 3. Dot product — measuring similarity
+## 5. Dot product — measuring similarity
 
-The **dot product** of two vectors is one of the most used operations in ML. It measures how similar two vectors are — how much they "point in the same direction".
-
-The calculation is simple: multiply corresponding elements, then sum everything up.
+The **dot product** of two vectors: multiply corresponding elements, sum everything up.
 
 ```
 a = [1, 2, 3]
 b = [4, 5, 6]
 
-a · b = (1×4) + (2×5) + (3×6)
-      = 4 + 10 + 18
-      = 32
+a · b = (1×4) + (2×5) + (3×6) = 4 + 10 + 18 = 32
 ```
 
 ### What the number means
 
 - **High positive** → vectors point in the same direction → similar
 - **Near zero** → vectors are perpendicular → unrelated
-- **Negative** → vectors point in opposite directions → dissimilar/opposing
+- **Negative** → vectors point opposite directions → dissimilar
 
 ```
-[1, 0] · [1, 0] = 1   ← same direction, maximum similarity
-[1, 0] · [0, 1] = 0   ← perpendicular, no similarity
-[1, 0] · [-1,0] = -1  ← opposite directions
+[1, 0] · [1, 0]  =  1   ← identical direction
+[1, 0] · [0, 1]  =  0   ← perpendicular
+[1, 0] · [-1, 0] = -1   ← opposite
 ```
 
-### In attention
-
-When computing attention scores, the transformer takes the Query vector of one word and dots it with the Key vector of every other word. A high dot product means "these two words are highly relevant to each other". That's literally the entire attention score — one dot product per pair of words.
-
-The sentence "I deposited money at the bank":
-- `Q["bank"] · K["deposited"]` → high score (semantically related)
-- `Q["bank"] · K["at"]` → low score (grammatically related, not semantically)
-- `Q["bank"] · K["the"]` → near zero (no meaningful relationship)
+In attention: the transformer takes the Query vector of one word and dots it with the Key vector of every other word. That dot product IS the attention score — how relevant those two words are to each other.
 
 ---
 
-## 4. What is a function? What is a derivative?
+## 6. What is a loss function?
 
-These two concepts are the foundation of how neural networks learn. Without them, backpropagation is magic. With them, it's just calculus.
+This is the concept that makes training possible. Without understanding it, backpropagation and gradient descent are magic.
 
-### A function
+### The definition
 
-A function takes an input and produces an output. You already know this:
+A **loss function** takes the model's prediction and the correct answer, and produces a single number — how wrong the model was.
+
+- Loss = 0 → perfect prediction
+- Loss = large → very wrong
+
+Example for a simple classification:
 
 ```
-f(x) = x²
+model predicts: [0.7, 0.2, 0.1]   ← probabilities for [cat, dog, bird]
+correct answer: [1.0, 0.0, 0.0]   ← it was actually a cat
 
-f(2) = 4
-f(3) = 9
-f(4) = 16
+loss = some formula measuring distance between these two distributions
+     = a single number, e.g. 0.36
 ```
 
-Neural networks are just very large functions. They take an input (a vector of numbers representing your prompt) and produce an output (a vector of numbers representing the next token probabilities). There are billions of parameters inside, but it's still just: input → function → output.
+For language models, the loss is typically **cross-entropy** — how surprised was the model by the correct next token? If the model predicted "the" with 90% probability and "the" was indeed next, loss is low. If it predicted "banana" was most likely and the correct answer was "the", loss is high.
 
-### A derivative — how sensitive is the output to the input?
+### Loss creates a landscape
+
+Imagine every possible weight setting as a point on a map. The loss function gives every point an elevation — how wrong the model is with those weights.
+
+Training = find the lowest point on this map.
+
+### Interactive: watch gradient descent find the minimum
+
+<LossLandscape client:load />
+
+The key insight: the loss function is differentiable — you can compute the slope (gradient) at any point, which tells you which direction is downhill. That's how the model knows which way to update the weights.
+
+---
+
+## 7. What is a derivative? What is a gradient?
+
+### A derivative — the slope at a point
 
 The derivative of a function at a point tells you: **if I shift the input slightly, how much does the output change?**
 
@@ -183,458 +284,470 @@ f(x) = x²
 f'(x) = 2x    ← the derivative
 
 At x=3:  f'(3) = 6
-         "if I shift x by 0.001, the output changes by about 0.006"
+         "shift x by 0.001 → output changes by ≈0.006"
 ```
 
-A large derivative means the output is very sensitive to changes in input. A small derivative (near zero) means the output barely changes when you shift the input.
+A large derivative = output is very sensitive to input changes.
+A near-zero derivative = output barely changes. The weight is effectively stuck — it can't learn.
 
-### Why this matters for training
+### A gradient — derivatives for many variables at once
 
-Training a neural network means finding the weight values that minimize the loss (the error). To do that, you need to know: **which direction should each weight be adjusted to reduce the loss?**
+A real neural network has millions of weights, not just one x. The **gradient** is just a collection of derivatives — one for each weight:
 
-The answer is the gradient — which is just a collection of derivatives, one for each weight. Each derivative tells you "if you adjust this weight slightly, does the loss go up or down, and by how much?"
+```
+gradient = [∂L/∂w₁, ∂L/∂w₂, ∂L/∂w₃, ...]
+```
 
-If the derivative is near zero, adjusting that weight does almost nothing. That weight can't learn. That's gradient vanishing — the derivative becomes so small that the training signal disappears.
+Each entry answers: "if I increase this weight slightly, does the loss go up or down — and by how much?"
+
+The gradient is a vector that points in the direction of steepest increase in loss. So to reduce the loss, you move *opposite* the gradient:
+
+```
+new_weight = old_weight - learning_rate × gradient
+```
+
+Do this for every weight, billions of times. That's training.
 
 ---
 
-## 5. What is a layer?
+## 8. Backpropagation — how gradients flow
 
-This is the question that should be answered before anything else in deep learning — but almost nobody stops to explain it directly.
+You have a loss. You need a gradient for every single weight in the network — there could be billions. Computing each one individually would be impossibly slow.
 
-A **layer** is one single transformation step in a neural network. That's it. It takes a vector in, does some math, outputs a new vector.
+**Backpropagation** is the algorithm that computes all gradients efficiently in one backwards pass through the network.
 
-Concretely, one layer does this:
+### The intuition
+
+Forward pass: input flows forward through every layer, producing a prediction.
 
 ```
-input vector (e.g. 512 numbers)
+input → layer 1 → layer 2 → layer 3 → prediction → loss
+```
+
+Backward pass: the error signal flows backwards, accumulating how much each layer contributed to the loss.
+
+```
+loss → ∂loss/∂layer3 → ∂loss/∂layer2 → ∂loss/∂layer1
+```
+
+The key mathematical tool is the **chain rule**: if `z = f(g(x))`, then `dz/dx = f'(g(x)) × g'(x)`. In plain English — the gradient at an early layer = (gradient at the next layer) × (derivative of this layer's own operation).
+
+This means:
+1. Compute loss
+2. Walk backwards one layer at a time
+3. At each layer, multiply the incoming gradient by the local derivative
+4. That gives the gradient for the weights in this layer
+
+The whole network's gradients — potentially trillions of numbers — can be computed in exactly **two passes**: one forward, one backward.
+
+### Why this matters for understanding the transformer
+
+Every design decision in the transformer exists partly to make backpropagation work well:
+
+- **Residual connections** — give gradients a direct highway backwards, preventing vanishing
+- **LayerNorm** — keeps activations in a range where derivatives are nonzero
+- **The √dₖ scaling in attention** — prevents softmax saturation where derivatives collapse to zero
+
+None of these make sense without understanding that gradients need to flow cleanly backwards.
+
+### Gradient vanishing — the failure mode
+
+If any layer has a derivative near zero, the gradient gets multiplied by ≈0 at that point and effectively disappears. Layers before it receive no signal. Their weights can't update. They're permanently stuck.
+
+This is gradient vanishing. It's not just slow training — it's entire layers becoming completely useless, regardless of how much more data you feed in.
+
+---
+
+## 9. What is a layer?
+
+A **layer** is one transformation step. Input vector in, math, output vector out.
+
+```
+input vector (512 numbers)
       ↓
   × weight matrix W    ← matrix multiplication
       ↓
-  + bias vector b      ← shift the result slightly
+  + bias vector b      ← small learned offset
       ↓
-  activation function  ← introduce non-linearity (more on this below)
+  activation function  ← introduces non-linearity
       ↓
-output vector (e.g. 512 numbers)
+output vector (512 numbers)
 ```
 
-Every single "layer" in every neural network — whether it's a feed-forward layer, an attention layer, a convolutional layer — is just a variation of this pattern. Input comes in, math happens, output goes out.
+### Why stack layers?
+
+One layer = one transformation = can only detect simple patterns.
+
+Stack 6 layers: each builds on what the previous found. By the final layer, you've applied 6 transformations, each refining the representation further.
+
+Think of it like editing a document:
+- Layer 1: catches spelling errors
+- Layer 2: fixes grammar
+- Layer 3: improves clarity
+- Layer 4: restructures arguments
+- Layer 5: tightens reasoning
+- Layer 6: polishes the whole thing
+
+Nobody tells layer 1 what "spelling errors" are. The network discovers what's useful to detect at each depth because it minimizes the loss.
+
+### Interactive: watch the forward pass through one layer
 
 <LayerForwardPass client:load />
 
-### Why stack layers at all?
-
-One layer can only learn simple relationships. It's one transformation — one "view" of the data.
-
-Stack two layers and the second layer can look at what the first layer found. Stack six layers and each one can build on increasingly abstract patterns from the previous ones.
-
-Think of it like processing a photo:
-- Layer 1 might detect edges
-- Layer 2 might detect shapes made of edges
-- Layer 3 might detect parts made of shapes (eyes, wheels)
-- Layer 4 might detect objects made of parts (faces, cars)
-
-Nobody tells layer 1 to find edges. It discovers that edges are a useful thing to find because deeper layers can then build on them. This is the key insight of deep learning — stacking layers lets the model discover its own hierarchy of useful patterns.
-
-### What are the weights in a layer?
-
-The weight matrix W is the thing that gets **learned**. It starts as random numbers. During training, it gets updated millions of times until it performs a useful transformation.
-
-After training:
-- The weight matrix in an early layer might detect simple patterns (edges, common word pairs)
-- The weight matrix in a later layer might detect complex patterns (sentiment, subject-verb agreement)
-
-The bias vector `b` is also learned — it's a small offset added after the matrix multiply. It lets the layer shift its output up or down, which gives it more flexibility in what it can represent.
-
 ### How many layers does a transformer have?
 
-The original transformer paper has **6 encoder layers** and **6 decoder layers**. Each layer contains:
-- A multi-head attention sublayer
-- A feed-forward sublayer
-- Two LayerNorm + residual connections
-
-Modern models stack far more:
+Original paper: 6 encoder + 6 decoder layers. Modern models:
 - GPT-3: 96 layers
-- GPT-4: rumored 120+ layers
-- Claude: unknown, but deep
+- GPT-4: estimated 120+ layers
+- Claude: unknown
 
-Each additional layer gives the model more "processing steps" — more chances to refine its understanding before producing an output.
-
-### So when someone says "layers stop learning"...
-
-...they mean the weights in those layers stop getting useful gradient signal during backpropagation. The weights can't update. The transformation that layer performs stays permanently random (or stuck at whatever values it happened to have). It contributes nothing.
-
-That's why gradient vanishing is so damaging — it doesn't just slow things down, it makes entire layers completely useless.
+Each additional layer = more processing steps, more capacity for complex patterns. But also more weights, more compute, more data needed.
 
 ---
 
-## 6. Activation functions — introducing non-linearity
+## 10. Activation functions — introducing non-linearity
 
-Here's a problem: if you chain matrix multiplications together, the whole thing collapses into a single matrix multiplication. One layer or a hundred layers — mathematically identical, just a bigger matrix.
+Here's the problem: chain multiple matrix multiplications together and the whole thing collapses to one matrix multiplication.
 
 ```
 Layer 1: y = W1 × x
-Layer 2: z = W2 × y = W2 × (W1 × x) = (W2 × W1) × x
-
-That's just: z = W_combined × x   ← one matrix, not two layers
+Layer 2: z = W2 × y = (W2 × W1) × x = W_combined × x
 ```
 
-To actually benefit from depth, you need **non-linearity** — something that breaks this collapsing behavior. That's what activation functions do.
+One layer or a hundred — mathematically identical. Depth becomes meaningless.
 
-### ReLU — the simplest useful activation
+**Activation functions** break this by adding non-linearity after each matrix multiply — a step the chain rule can't simplify away.
 
-**ReLU** stands for Rectified Linear Unit. The definition:
+### Interactive: see the curves
+
+<ActivationCurves client:load />
+
+### ReLU — the workhorse
 
 ```
 ReLU(x) = max(0, x)
 ```
 
-That's it. If the input is positive, keep it. If it's negative, output zero.
+Negative inputs → 0. Positive inputs → unchanged. The "kink" at zero is the non-linearity.
+
+Why it's everywhere:
+- Computationally trivial (`if x > 0: return x`)
+- Doesn't saturate for positive values — gradients flow cleanly
+- In practice, works better than more complex functions
+
+### Softmax — scores to probabilities
 
 ```
-ReLU(-5)  = 0
-ReLU(-1)  = 0
-ReLU(0)   = 0
-ReLU(3)   = 3
-ReLU(7.2) = 7.2
+softmax(xᵢ) = eˣⁱ / Σeˣʲ
 ```
 
-Visually, it's a flat line at zero for negatives, then a straight line going up for positives.
+Takes a list of raw scores, outputs probabilities that sum to 1.0. Used in two places in the transformer:
+1. Attention weights — turns similarity scores into "how much to attend"
+2. Final output — turns logits into "what's the next token"
 
-Why does this help? It introduces non-linearity (the "kink" at zero breaks the linear collapse), it's computationally cheap (just `if x > 0: return x`), and it doesn't saturate for positive values so gradients flow cleanly.
-
-In the transformer's feed-forward layer:
-
-```
-hidden = ReLU(W1 × input + b1)   ← apply ReLU after the matrix multiply
-output = W2 × hidden + b2
-```
-
-The ReLU after W1 is what makes "two layers" actually behave like two layers. Without it, W1 and W2 would just collapse.
-
-### Softmax — turning scores into probabilities
-
-You've seen this in the attention formula. Softmax converts a list of raw scores into probabilities that sum to 1.0:
-
-```
-scores   = [2.0, 1.0, 0.5]
-softmax  = [0.64, 0.24, 0.12]   ← sum = 1.0
-```
-
-The formula for each element:
-
-```
-softmax(xᵢ) = eˣⁱ / Σ eˣʲ
-```
-
-Which means: exponentiate each score, then divide by the sum of all exponentiated scores.
-
-Why `e`? Because it's differentiable everywhere (meaning gradients always flow), and it amplifies differences between scores in a smooth, continuous way.
-
-Softmax appears in two places in transformers:
-1. **Attention weights** — converts raw dot product scores into attention probabilities
-2. **Final output layer** — converts the model's raw output into token probabilities ("what's the next word?")
-
-### Sigmoid — squishing to 0-1
-
-Less used in modern transformers but you'll encounter it. Takes any number and squishes it between 0 and 1:
+### Sigmoid — binary decisions
 
 ```
 σ(x) = 1 / (1 + e⁻ˣ)
-
-σ(-∞) ≈ 0
-σ(0)  = 0.5
-σ(∞)  ≈ 1
 ```
 
-Useful when you need a probability for a single binary decision. Softmax is for choosing between many options; sigmoid is for yes/no decisions.
+Squishes any number into 0–1. Useful for yes/no decisions. Saturates at extremes (gradient vanishing risk) which is why ReLU replaced it in hidden layers.
 
 ---
 
-## 7. LayerNorm — keeping numbers stable
+## 11. LayerNorm — keeping numbers stable
 
-**Layer Normalization** is a technique applied throughout the transformer after each sublayer. The idea is simple: keep the numbers in a stable, well-behaved range so gradients flow properly and training doesn't explode.
+As vectors flow through many layers, the numbers drift — some dimensions explode to huge values, others shrink to near zero.
 
-Here's the problem it solves. As vectors pass through many matrix multiplications and activations, the numbers can drift — some dimensions blow up to huge values, others shrink to near zero. This causes:
-- Large values → softmax collapse → gradient vanishing
-- Wildly different scales between dimensions → some dimensions dominate, others are ignored
-
-LayerNorm fixes this by normalizing each vector to have **mean ≈ 0** and **standard deviation ≈ 1**:
+**LayerNorm** fixes this after every sublayer. It normalizes each vector to have **mean ≈ 0** and **std ≈ 1**:
 
 ```
-For a vector x = [x₁, x₂, ..., xₙ]:
-
-1. Compute mean:   μ = (x₁ + x₂ + ... + xₙ) / n
-2. Compute std:    σ = sqrt(average of (xᵢ - μ)²)
-3. Normalize:      x̂ᵢ = (xᵢ - μ) / σ
-4. Scale + shift:  yᵢ = γ × x̂ᵢ + β   ← γ and β are learned
+1. mean μ = average of all values in the vector
+2. std  σ = square root of average squared deviation from mean
+3. normalize: x̂ᵢ = (xᵢ - μ) / σ
+4. scale + shift: yᵢ = γ × x̂ᵢ + β   ← γ, β are learned
 ```
 
-Steps 1-3 bring all values to a standard range. Step 4 lets the model learn to scale and shift that range if it needs to — the γ and β are learned parameters.
+Why mean=0, std=1 specifically? That's the "Goldilocks zone" where:
+- Softmax doesn't collapse (no extreme values)
+- ReLU doesn't kill everything (not all negative)
+- Derivatives stay nonzero (gradients flow)
 
-After LayerNorm, the vector is well-scaled. Softmax won't collapse. Gradients will flow. Training stays stable.
-
-In the transformer it appears after every sublayer:
-
-```
-output = LayerNorm(x + Sublayer(x))
-         ↑ normalize after the residual connection
-```
+Steps 1–3 are fixed math. Step 4 lets the model *learn* to rescale if needed — so LayerNorm doesn't permanently constrain expressiveness.
 
 ---
 
-## 8. Tokens — not words
+## 12. Loss functions — types you'll encounter
 
-This one trips up a lot of people. The transformer doesn't operate on words. It operates on **tokens**.
+You already know what a loss function is. Here are the specific ones used in transformers:
 
-### What is a token?
+### Cross-entropy loss — for language models
 
-A token is a chunk of text — but not necessarily a whole word. Modern tokenizers (like BPE — Byte Pair Encoding) split text into subword units:
-
-```
-"transformers"  →  ["transform", "ers"]       ← 2 tokens
-"unbelievable"  →  ["un", "believ", "able"]   ← 3 tokens
-"cat"           →  ["cat"]                    ← 1 token
-"GPT"           →  ["G", "PT"]                ← 2 tokens (maybe)
-"the"           →  ["the"]                    ← 1 token
-```
-
-Why not just use whole words? Two reasons:
-
-**1. Vocabulary size.** English has hundreds of thousands of words. If each word is a token, your embedding table (the lookup table mapping tokens to vectors) becomes enormous. With subword tokens, you can cover all of English with ~50,000 tokens.
-
-**2. Unknown words.** New words, names, slang, code — whole-word tokenizers break on anything not in their vocabulary. Subword tokenizers can handle anything by splitting it into known pieces.
-
-### Tokens are what get embedded
-
-When you feed text into a transformer:
+Language models predict the next token from a vocabulary of ~50,000. Cross-entropy measures how surprised the model was by the correct answer:
 
 ```
-"I love cats"
-     ↓ tokenizer
-["I", "love", "cat", "s"]     ← tokens (maybe)
-     ↓ embedding lookup
-[v₁, v₂, v₃, v₄]             ← each token → 512-dim vector
-     ↓ transformer
-output vectors
+loss = -log(probability assigned to the correct token)
 ```
 
-Every "word" in the transformer article is really a "token". They're usually the same for common English words, but for rare words, names, code, or other languages — one word might become 3-5 tokens.
+If model gave "the" a 90% probability and it was correct: loss = -log(0.9) = 0.105 (low)
+If model gave "the" a 2% probability: loss = -log(0.02) = 3.91 (high)
 
-### Context window = token limit
+Training minimizes this across billions of tokens. Low cross-entropy = model has learned the statistical patterns of language.
 
-The "context window" of a model (e.g. Claude: 200k tokens, GPT-4: 128k tokens) is the maximum number of tokens the model can process at once. It's not characters or words — it's tokens. A typical English word is ~1.3 tokens on average, so 100k tokens ≈ 75k words ≈ a full novel.
+### Why -log?
 
-Why is there a limit? Because attention is computed between every pair of tokens. For a sequence of N tokens, attention requires N² computations. At 100k tokens, that's 10 billion attention scores. Memory and compute become the bottleneck.
+`-log` has useful properties:
+- When probability = 1.0 (perfect), loss = 0
+- When probability → 0 (totally wrong), loss → ∞
+- It's differentiable everywhere — gradients flow cleanly
+- It heavily penalizes confident wrong answers
 
 ---
 
-## 9. Parameters vs hyperparameters
+## 13. Overfitting — why architecture choices exist
 
-These two words sound similar but mean completely different things.
+**Overfitting** is when a model memorizes the training data instead of learning general patterns.
 
-### Parameters — what the model learns
+Imagine training a model to recognize cats from 1,000 photos. An overfitted model might memorize "photo #47 is a cat" rather than learning "cats have pointed ears and whiskers". It scores perfectly on training data but fails on any new photo it hasn't seen.
 
-**Parameters** are the numbers inside the model that get updated during training. Every entry in every weight matrix is a parameter.
+### How you know it's happening
 
 ```
-Wq matrix: 512 × 64 = 32,768 parameters
-Wk matrix: 512 × 64 = 32,768 parameters
-Wv matrix: 512 × 64 = 32,768 parameters
+training loss:    0.02   ← very low, model "knows" the training data
+validation loss:  4.8    ← high, model fails on unseen data
+```
+
+Validation loss = loss on data the model never trained on. If training loss is low but validation loss is high, you're overfitting.
+
+### Why this matters for the transformer
+
+Many transformer design choices exist specifically to prevent overfitting:
+
+- **Dropout** — randomly zero out neurons during training, forcing the model not to rely on any single pathway
+- **Weight decay** — penalizes large weight values, keeping the model from memorizing
+- **The specific layer count and dimension sizes** — chosen to have enough capacity to learn patterns but not so much that it memorizes
+
+When you see `d_model=512` or `num_heads=8` in the paper — those aren't arbitrary. They're the sweet spot between underfitting (too small to learn) and overfitting (too large, memorizes training data).
+
+---
+
+## 14. Training vs inference — two completely different modes
+
+The transformer behaves differently during training vs when you're actually using it.
+
+### Training mode
+
+- You have input **and** the correct output
+- The model makes predictions, computes loss against the correct answers
+- Backpropagation runs, weights update
+- Happens billions of times on massive datasets
+- Slow — hours to months on thousands of GPUs
+
+```
+input: "The cat sat"
+target: "on the mat"
+model predicts token by token, loss computed, weights updated
+```
+
+- **Masking in the decoder is a training trick** — you feed the full target sequence but mask future positions so the model can't cheat
+
+### Inference mode
+
+- You have input only — no correct output
+- The model generates output one token at a time
+- No backpropagation, no weight updates
+- Fast — milliseconds per response
+
+```
+input: "The cat sat"
+model generates: "on" → "the" → "mat" → <end>
+```
+
+- **Masking is now structural** — the model genuinely can't see future tokens because they haven't been generated yet
+
+### Why this distinction matters
+
+A lot of confusion in transformer explanations comes from mixing these up. When you read "the decoder generates tokens autoregressively" — that's inference. When you read "teacher forcing" or "shifted right inputs" — that's training. They're different mechanisms even though they share the same weights.
+
+---
+
+## 15. Tokens — not words
+
+The transformer doesn't operate on words. It operates on **tokens**.
+
+A token is a chunk of text — but not necessarily a whole word. The tokenizer (BPE — Byte Pair Encoding) splits text into subword units:
+
+```
+"transformers"  → ["transform", "ers"]       ← 2 tokens
+"unbelievable"  → ["un", "believ", "able"]   ← 3 tokens
+"cat"           → ["cat"]                    ← 1 token
+"the"           → ["the"]                    ← 1 token
+```
+
+**Why not just words?**
+
+1. **Vocabulary size** — English has hundreds of thousands of words. With subwords, you cover all of English with ~50,000 tokens.
+2. **Unknown words** — whole-word tokenizers break on names, slang, code. BPE handles anything by splitting into known pieces.
+
+**Context window = token limit**
+
+Claude: 200k tokens. GPT-4: 128k tokens. These are token limits, not word limits. ~1 word ≈ 1.3 tokens on average.
+
+Why a limit at all? Attention computes N² comparisons for N tokens. At 100k tokens that's 10 billion attention scores. Memory and compute become the bottleneck.
+
+---
+
+## 16. Parameters vs hyperparameters
+
+**Parameters** — what the model learns. Every number in every weight matrix.
+
+```
+Wq: 512 × 64 = 32,768 parameters
+Wk: 512 × 64 = 32,768 parameters
 ...
+GPT-4: ~1.8 trillion parameters total
 ```
 
-GPT-4 has ~1.8 trillion parameters. All of them start random. All of them get updated during training. The model "learns" by having its parameters converge to values that produce correct outputs.
+"A 7B model" = 7 billion parameters.
 
-When someone says "a 7B model", they mean 7 billion parameters.
+**Hyperparameters** — what you set before training. The model never changes these.
 
-### Hyperparameters — what you set before training
+| Hyperparameter | Original paper | What happens if you change it |
+|---|---|---|
+| d_model | 512 | Bigger = richer representations, more compute |
+| num_heads | 8 | More heads = more "perspectives", more compute |
+| num_layers | 6 | More layers = deeper reasoning, more compute |
+| learning_rate | 0.0001 | Too high = overshoots, diverges. Too low = never converges |
+| batch_size | 64 | Bigger = more stable gradients, more memory |
 
-**Hyperparameters** are the settings you choose before training starts. The model doesn't learn them — you decide them.
-
-Examples in the transformer:
-- **d_model = 512** — the dimension of word embeddings
-- **Number of heads = 8** — how many attention heads
-- **Number of layers = 6** — how many encoder/decoder blocks
-- **Learning rate = 0.0001** — how large each weight update is
-- **Batch size = 64** — how many training examples per update
-
-These are design choices. Change them and you get a different model — maybe better, maybe worse. Finding good hyperparameters is a lot of trial and error (and expensive compute).
-
-The learning rate is the most sensitive one. Too high and the model overshoots the good solution and diverges. Too low and training takes forever or gets stuck.
+Finding good hyperparameters is expensive trial and error. Most production models have been tuned over hundreds of training runs.
 
 ---
 
-## 10. The encoder-decoder split — BERT vs GPT vs the original paper
+## 17. The encoder-decoder split — BERT vs GPT vs the original paper
 
-The original transformer paper uses an **encoder-decoder** architecture. But most models you've heard of only use half of it. Understanding why requires knowing what each half does.
+### Encoder — bidirectional understanding
 
-### Encoder — understanding input
+Reads the full input simultaneously. Every token can attend to every other token in both directions. Produces rich contextual representations.
 
-The encoder reads the full input sequence and produces rich contextual representations of every token. It uses **bidirectional** attention — every token can look at every other token in both directions (left and right).
+**Best for:** Understanding tasks — classification, search, question answering. BERT is encoder-only.
 
-```
-Input:  "The bank was closed"
-        ↓ encoder
-        [v_The, v_bank, v_was, v_closed]   ← each vector now contains
-                                              context from the whole sentence
-```
+### Decoder — autoregressive generation
 
-"bank" in the encoder's output has already absorbed information from "closed" (to its right) and "The" (to its left). It understands the full context.
+Generates one token at a time. When generating token N, can only see tokens 1 through N-1 (masked). Can't see the future.
 
-**Best for:** Tasks where you need to understand text — classification, question answering, search/retrieval. BERT is encoder-only.
+**Best for:** Generation tasks. GPT, Claude, Gemini, LLaMA are all decoder-only.
 
-### Decoder — generating output
+### Encoder-decoder — sequence-to-sequence
 
-The decoder generates text one token at a time. It uses **masked (causal) attention** — when generating token N, it can only look at tokens 1 through N-1. It can't see the future.
+Original paper architecture. Encoder reads source sequence (full bidirectional attention). Decoder generates target sequence (masked self-attention + cross-attention back to encoder).
 
-```
-Generating: "The cat sat"
-            ↓
-token 1: generate "The" (no context)
-token 2: generate "cat" (can see "The")
-token 3: generate "sat" (can see "The cat")
-token 4: generate ??? (can see "The cat sat")
-```
-
-Why mask the future? Because during training, you show the model the full target sentence, but you want it to learn to predict each word from only what came before. If it could see the future, it would just copy — no learning.
-
-**Best for:** Generating text. GPT, Claude, Gemini, LLaMA are all decoder-only.
-
-### Encoder-decoder — translating between sequences
-
-The original paper is encoder-decoder because it was designed for machine translation. The encoder reads the full source language sentence (understanding mode). The decoder generates the target language sentence one token at a time (generation mode), using cross-attention to refer back to the encoder's output.
-
-```
-"The cat sat"  →  encoder  →  [rich representations]
-                                      ↓ cross-attention
-                              decoder generates: "Le chat s'est assis"
-```
-
-**Best for:** Tasks where input and output are different sequences — translation, summarization, question answering with long context. T5 is encoder-decoder.
+**Best for:** Translation, summarization — tasks where input and output are different sequences. T5 is encoder-decoder.
 
 ---
 
-## 11. How the decoder produces a word
+## 18. How the decoder produces a word
 
-This is the gap I noticed in the transformer article — it explains everything up to "the decoder produces output vectors" but never shows how those vectors become actual words.
-
-Here's the final step.
-
-After all the attention and feed-forward layers, the decoder produces a vector for the current position. This vector is 512-dimensional (or whatever d_model is).
-
-Then:
+After all layers, the decoder produces a 512-dimensional vector. How does that become "the next word is 'Paris'"?
 
 **Step 1 — Linear projection**
 
-Multiply by a final weight matrix that maps 512 dimensions → vocabulary size (e.g. 50,000):
-
 ```
 output_vector (512d)
-      ↓ × W_final (512 × 50000)
-logits (50000d)    ← one score per token in vocabulary
+      ↓ × W_final (512 × 50,000)
+logits (50,000 numbers)   ← one score per token in vocabulary
 ```
-
-These 50,000 numbers are called **logits** — raw, unnormalized scores. A high logit for token 7432 means "the model thinks the next word is probably token 7432".
 
 **Step 2 — Softmax**
 
-Apply softmax to convert logits into probabilities:
-
 ```
-logits   = [2.1, 0.3, 8.4, ...]   ← 50,000 numbers
-softmax  = [0.001, 0.0002, 0.89, ...]   ← probabilities, sum = 1.0
+logits → softmax → probabilities (sum = 1.0)
 ```
 
-**Step 3 — Sample or take max**
+**Step 3 — Sample or argmax**
 
-Either:
-- **Greedy**: pick the token with the highest probability
-- **Sampling**: randomly sample from the distribution (adds variety)
-- **Top-k / Top-p**: only sample from the top-k tokens or top probability mass
-
-This is why LLMs don't always give the same answer — if you're sampling rather than being greedy, there's randomness in which token gets chosen. The **temperature** parameter controls how "peaked" the distribution is before sampling — high temperature = more random, low temperature = more deterministic.
+- **Greedy** — pick highest probability token every time
+- **Sampling** — randomly sample from the distribution (adds variety)
+- **Temperature** — controls how "peaked" the distribution is. Temperature=1.0 = normal sampling. Temperature→0 = always pick the max. Temperature>1 = more random
 
 **Step 4 — Repeat**
 
-Append the chosen token to the sequence, feed it back into the decoder, and generate the next token. Repeat until you hit a stop token or reach max length.
+Append the chosen token, feed back in, generate the next one. Repeat until `<end>` or max length.
 
-This is why LLM generation is sequential — each token depends on the previous ones. You can't parallelize generation (you can parallelize training, because you have the full target sequence ahead of time).
-
----
-
-## 12. "Shifted right" — why the decoder input is offset
-
-In the transformer architecture diagram you'll see "outputs (shifted right)" as the decoder input. This confused me for a while.
-
-Here's what it means.
-
-During **training**, you have a complete input-output pair, e.g.:
-
-```
-Input (encoder):   "The cat sat"
-Target (decoder):  "Le chat s'est assis"
-```
-
-To train the decoder efficiently, you feed the full target sequence in at once — but shifted one position to the right:
-
-```
-Decoder input:   [<start>, "Le", "chat", "s'est"]
-Decoder target:  ["Le",    "chat", "s'est", "assis"]
-```
-
-Position 1 sees `<start>`, should predict "Le"
-Position 2 sees "Le", should predict "chat"
-Position 3 sees "Le chat", should predict "s'est"
-...
-
-The shift ensures that when predicting token N, the decoder only has access to tokens 0 through N-1. Combined with masking, this means the decoder can't cheat by looking at the answer it's supposed to predict.
-
-At **inference** (generation), there's no target sequence — you start with `<start>` and generate one token at a time. The "shifted right" setup is purely a training trick.
+This sequential generation is why inference can't be parallelized — each token depends on all previous tokens.
 
 ---
 
-## 13. Test yourself
+## 19. "Shifted right" — the training trick explained
 
-Before you go read the transformer article, make sure you can answer these:
+In training, you have a full source-target pair:
 
-**Vectors and matrices:**
-- What is a vector? What does "512-dimensional" mean?
-- What does matrix multiplication produce?
+```
+Encoder input:  "The cat sat"
+Decoder target: "Le chat s'est assis"
+```
+
+The decoder input is the target sequence **shifted one position right**:
+
+```
+Decoder input:  [<start>, "Le", "chat", "s'est"]
+Decoder target: ["Le",    "chat", "s'est", "assis"]
+```
+
+Position 1 sees `<start>`, predicts "Le". Position 2 sees "Le", predicts "chat". And so on.
+
+Combined with masking (can't see future positions), this trains the decoder to predict each token from only previous tokens — without cheating.
+
+At inference, there's no target sequence — you genuinely generate one token at a time. "Shifted right" is purely a training efficiency trick.
+
+---
+
+## 20. Test yourself
+
+Before reading the transformer article, make sure you can answer all of these:
+
+**The foundation:**
+- What problem do neural networks solve that regular programming can't?
+- What does "learning" mean mathematically?
+- What does a single neuron compute?
+
+**The math:**
+- What is a vector? What does 512-dimensional mean?
+- What does matrix multiplication produce? Step through a 2×2 example.
 - What is a dot product measuring?
+- What is a derivative telling you at a point on a curve?
+- What is a gradient? How is it different from a single derivative?
 
-**Layers:**
+**Loss and training:**
+- What is a loss function? What does it output?
+- What is gradient descent doing geometrically?
+- What is backpropagation? Why does it matter?
+- What is gradient vanishing? Why does it happen?
+
+**Layers and activations:**
 - What does one layer actually do, step by step?
-- Why can't you just use one big layer instead of stacking many?
-- What does it mean when someone says "early layers stop learning"?
-
-**Calculus basics:**
-- What is a derivative telling you?
-- Why does a near-zero derivative break training?
-
-**Activation functions:**
+- Why can't you just use one big layer?
 - What does ReLU do to negative numbers? Positive numbers?
-- Why do we need activation functions at all?
-- What does softmax produce and what are its inputs?
+- Why do activation functions exist at all?
+- What does LayerNorm do and why is it necessary?
 
-**Normalization:**
-- What problem does LayerNorm solve?
-- What does it mean for a vector to have mean=0, std=1?
+**Training vs inference:**
+- What's the difference between training mode and inference mode?
+- Why is generation sequential at inference but not at training?
 
-**Tokens:**
+**Overfitting:**
+- What is overfitting?
+- How do you detect it?
+- Name two mechanisms in the transformer that help prevent it.
+
+**Tokens and architecture:**
 - Why are tokens not the same as words?
-- What is a context window?
-
-**Architecture:**
-- What's the difference between an encoder and a decoder?
-- Why is GPT decoder-only and BERT encoder-only?
-- What are logits?
-
-**Parameters:**
+- What is a context window and why does it have a limit?
 - What's the difference between a parameter and a hyperparameter?
 - What does "a 7B model" mean?
+- What's the difference between encoder-only, decoder-only, and encoder-decoder?
 
-If you can answer all of these, the transformer article will make complete sense. Go read it.
+If you can answer all of these, you're ready. Go read the transformer article.
 
 → **[Transformers: From Zero to the Paper](/blog/transformers-from-scratch)**
 
