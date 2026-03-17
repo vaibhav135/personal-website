@@ -1,0 +1,643 @@
+---
+title: "Before You Read the Transformer Paper — The Math You Actually Need"
+description: "Vectors, matrices, dot products, derivatives, tokens, activation functions — everything the transformer article assumes you know, explained from scratch."
+pubDate: 2026-03-17
+tags: ["ai", "ml", "math", "prerequisites"]
+---
+
+import LayerForwardPass from '../../components/interactive/LayerForwardPass.tsx';
+
+> I wrote this because I kept bumping into words in the transformer article — "matrix multiplication", "dot product", "ReLU", "token" — and either skipping over them or half-understanding them. This is me going back and filling every single gap. No assumed knowledge. No skipping steps.
+>
+> If you already know linear algebra, skip to the tokens section. Otherwise, start here.
+
+---
+
+## 0. What even is a number in this context?
+
+Before vectors and matrices, let's get concrete about what numbers represent in ML.
+
+In normal programming, a number might be a user's age, a price, a count. In ML, numbers represent **meaning** — or more precisely, they represent *properties* of things.
+
+When a model sees the word "cat", it doesn't see the letters C-A-T. It sees something like:
+
+```
+[0.2, 0.9, 0.1, 0.7, 0.3, ...]   ← 512 numbers
+```
+
+Each number encodes some aspect of what "cat" means. That's it. The whole field of ML is about learning which numbers best capture meaning, and doing math on those numbers to produce useful outputs.
+
+Everything else in this article is just explaining what kinds of math, and why.
+
+---
+
+## 1. Vectors — a list of numbers with meaning
+
+A **vector** is just a list of numbers. That's the whole definition.
+
+```
+[3, 7]          ← 2-dimensional vector
+[1, 4, 9]       ← 3-dimensional vector
+[0.2, 0.9, 0.1] ← 3-dimensional vector (decimals are fine)
+```
+
+The word "dimensional" just means how many numbers are in the list. A 512-dimensional vector is a list of 512 numbers.
+
+### Vectors as points in space
+
+Here's the intuition that makes everything click: **a vector is a point in space**.
+
+A 2D vector `[3, 7]` is a point on a flat map — 3 steps right, 7 steps up. A 3D vector `[1, 4, 9]` is a point in a room — 1 step right, 4 steps forward, 9 steps up.
+
+A 512-dimensional vector is a point in 512-dimensional space. You can't visualize it, but the math works exactly the same way.
+
+### Why this matters for ML
+
+Words are represented as high-dimensional vectors (512 or more numbers). Similar words end up as points that are *close together* in that space. "Cat" and "dog" are nearby. "Cat" and "democracy" are far apart.
+
+This means you can do geometry on words:
+- Distance between vectors = how different two words are
+- Direction of a vector = what "kind" of thing it is
+
+The famous example: `king - man + woman ≈ queen`. Subtract the "man" direction, add the "woman" direction, and you land near "queen". Vector arithmetic on meaning.
+
+---
+
+## 2. Matrices — a grid of numbers
+
+A **matrix** is a rectangular grid of numbers. Rows and columns.
+
+```
+┌ 1  2  3 ┐
+│ 4  5  6 │  ← a 2×3 matrix (2 rows, 3 columns)
+└         ┘
+```
+
+Matrices are how we store **transformations** — rules for converting one vector into another vector.
+
+Every weight matrix in a transformer (Wq, Wk, Wv, W1, W2...) is just a matrix. A big grid of numbers that the model learned during training.
+
+### Matrix multiplication — the most important operation in ML
+
+Matrix multiplication takes a vector and a matrix, and produces a new vector. It's the core operation that happens billions of times during both training and inference.
+
+Here's the simplest possible example:
+
+```
+Input vector:  [2, 3]
+
+Weight matrix: ┌ 1  0 ┐
+               └ 0  2 ┘
+
+Output vector: [2×1 + 3×0,  2×0 + 3×2]
+             = [2,  6]
+```
+
+**What just happened?** The matrix *transformed* the input vector `[2, 3]` into a new vector `[2, 6]`. The first number stayed the same (multiplied by 1). The second number doubled (multiplied by 2).
+
+A more concrete breakdown — for each number in the output, you:
+1. Take the corresponding row of the matrix
+2. Multiply each element with the matching element of the input vector
+3. Sum them all up
+
+```
+Output[0] = (2×1) + (3×0) = 2
+Output[1] = (2×0) + (3×2) = 6
+```
+
+### Why matrices are "learned"
+
+When we say "Wq is a learned weight matrix", we mean: during training, the model adjusts every number in that grid, thousands of times, until the transformation it performs produces useful outputs. The matrix starts as random noise and gradually becomes a meaningful transformation.
+
+In the transformer:
+- Wq transforms a word's embedding into its "Query" — what it's looking for
+- Wk transforms it into its "Key" — what it contains
+- Wv transforms it into its "Value" — its actual information
+
+Same input embedding, three different matrices, three completely different outputs. That's the whole Q, K, V setup.
+
+---
+
+## 3. Dot product — measuring similarity
+
+The **dot product** of two vectors is one of the most used operations in ML. It measures how similar two vectors are — how much they "point in the same direction".
+
+The calculation is simple: multiply corresponding elements, then sum everything up.
+
+```
+a = [1, 2, 3]
+b = [4, 5, 6]
+
+a · b = (1×4) + (2×5) + (3×6)
+      = 4 + 10 + 18
+      = 32
+```
+
+### What the number means
+
+- **High positive** → vectors point in the same direction → similar
+- **Near zero** → vectors are perpendicular → unrelated
+- **Negative** → vectors point in opposite directions → dissimilar/opposing
+
+```
+[1, 0] · [1, 0] = 1   ← same direction, maximum similarity
+[1, 0] · [0, 1] = 0   ← perpendicular, no similarity
+[1, 0] · [-1,0] = -1  ← opposite directions
+```
+
+### In attention
+
+When computing attention scores, the transformer takes the Query vector of one word and dots it with the Key vector of every other word. A high dot product means "these two words are highly relevant to each other". That's literally the entire attention score — one dot product per pair of words.
+
+The sentence "I deposited money at the bank":
+- `Q["bank"] · K["deposited"]` → high score (semantically related)
+- `Q["bank"] · K["at"]` → low score (grammatically related, not semantically)
+- `Q["bank"] · K["the"]` → near zero (no meaningful relationship)
+
+---
+
+## 4. What is a function? What is a derivative?
+
+These two concepts are the foundation of how neural networks learn. Without them, backpropagation is magic. With them, it's just calculus.
+
+### A function
+
+A function takes an input and produces an output. You already know this:
+
+```
+f(x) = x²
+
+f(2) = 4
+f(3) = 9
+f(4) = 16
+```
+
+Neural networks are just very large functions. They take an input (a vector of numbers representing your prompt) and produce an output (a vector of numbers representing the next token probabilities). There are billions of parameters inside, but it's still just: input → function → output.
+
+### A derivative — how sensitive is the output to the input?
+
+The derivative of a function at a point tells you: **if I shift the input slightly, how much does the output change?**
+
+```
+f(x) = x²
+f'(x) = 2x    ← the derivative
+
+At x=3:  f'(3) = 6
+         "if I shift x by 0.001, the output changes by about 0.006"
+```
+
+A large derivative means the output is very sensitive to changes in input. A small derivative (near zero) means the output barely changes when you shift the input.
+
+### Why this matters for training
+
+Training a neural network means finding the weight values that minimize the loss (the error). To do that, you need to know: **which direction should each weight be adjusted to reduce the loss?**
+
+The answer is the gradient — which is just a collection of derivatives, one for each weight. Each derivative tells you "if you adjust this weight slightly, does the loss go up or down, and by how much?"
+
+If the derivative is near zero, adjusting that weight does almost nothing. That weight can't learn. That's gradient vanishing — the derivative becomes so small that the training signal disappears.
+
+---
+
+## 5. What is a layer?
+
+This is the question that should be answered before anything else in deep learning — but almost nobody stops to explain it directly.
+
+A **layer** is one single transformation step in a neural network. That's it. It takes a vector in, does some math, outputs a new vector.
+
+Concretely, one layer does this:
+
+```
+input vector (e.g. 512 numbers)
+      ↓
+  × weight matrix W    ← matrix multiplication
+      ↓
+  + bias vector b      ← shift the result slightly
+      ↓
+  activation function  ← introduce non-linearity (more on this below)
+      ↓
+output vector (e.g. 512 numbers)
+```
+
+Every single "layer" in every neural network — whether it's a feed-forward layer, an attention layer, a convolutional layer — is just a variation of this pattern. Input comes in, math happens, output goes out.
+
+<LayerForwardPass client:load />
+
+### Why stack layers at all?
+
+One layer can only learn simple relationships. It's one transformation — one "view" of the data.
+
+Stack two layers and the second layer can look at what the first layer found. Stack six layers and each one can build on increasingly abstract patterns from the previous ones.
+
+Think of it like processing a photo:
+- Layer 1 might detect edges
+- Layer 2 might detect shapes made of edges
+- Layer 3 might detect parts made of shapes (eyes, wheels)
+- Layer 4 might detect objects made of parts (faces, cars)
+
+Nobody tells layer 1 to find edges. It discovers that edges are a useful thing to find because deeper layers can then build on them. This is the key insight of deep learning — stacking layers lets the model discover its own hierarchy of useful patterns.
+
+### What are the weights in a layer?
+
+The weight matrix W is the thing that gets **learned**. It starts as random numbers. During training, it gets updated millions of times until it performs a useful transformation.
+
+After training:
+- The weight matrix in an early layer might detect simple patterns (edges, common word pairs)
+- The weight matrix in a later layer might detect complex patterns (sentiment, subject-verb agreement)
+
+The bias vector `b` is also learned — it's a small offset added after the matrix multiply. It lets the layer shift its output up or down, which gives it more flexibility in what it can represent.
+
+### How many layers does a transformer have?
+
+The original transformer paper has **6 encoder layers** and **6 decoder layers**. Each layer contains:
+- A multi-head attention sublayer
+- A feed-forward sublayer
+- Two LayerNorm + residual connections
+
+Modern models stack far more:
+- GPT-3: 96 layers
+- GPT-4: rumored 120+ layers
+- Claude: unknown, but deep
+
+Each additional layer gives the model more "processing steps" — more chances to refine its understanding before producing an output.
+
+### So when someone says "layers stop learning"...
+
+...they mean the weights in those layers stop getting useful gradient signal during backpropagation. The weights can't update. The transformation that layer performs stays permanently random (or stuck at whatever values it happened to have). It contributes nothing.
+
+That's why gradient vanishing is so damaging — it doesn't just slow things down, it makes entire layers completely useless.
+
+---
+
+## 6. Activation functions — introducing non-linearity
+
+Here's a problem: if you chain matrix multiplications together, the whole thing collapses into a single matrix multiplication. One layer or a hundred layers — mathematically identical, just a bigger matrix.
+
+```
+Layer 1: y = W1 × x
+Layer 2: z = W2 × y = W2 × (W1 × x) = (W2 × W1) × x
+
+That's just: z = W_combined × x   ← one matrix, not two layers
+```
+
+To actually benefit from depth, you need **non-linearity** — something that breaks this collapsing behavior. That's what activation functions do.
+
+### ReLU — the simplest useful activation
+
+**ReLU** stands for Rectified Linear Unit. The definition:
+
+```
+ReLU(x) = max(0, x)
+```
+
+That's it. If the input is positive, keep it. If it's negative, output zero.
+
+```
+ReLU(-5)  = 0
+ReLU(-1)  = 0
+ReLU(0)   = 0
+ReLU(3)   = 3
+ReLU(7.2) = 7.2
+```
+
+Visually, it's a flat line at zero for negatives, then a straight line going up for positives.
+
+Why does this help? It introduces non-linearity (the "kink" at zero breaks the linear collapse), it's computationally cheap (just `if x > 0: return x`), and it doesn't saturate for positive values so gradients flow cleanly.
+
+In the transformer's feed-forward layer:
+
+```
+hidden = ReLU(W1 × input + b1)   ← apply ReLU after the matrix multiply
+output = W2 × hidden + b2
+```
+
+The ReLU after W1 is what makes "two layers" actually behave like two layers. Without it, W1 and W2 would just collapse.
+
+### Softmax — turning scores into probabilities
+
+You've seen this in the attention formula. Softmax converts a list of raw scores into probabilities that sum to 1.0:
+
+```
+scores   = [2.0, 1.0, 0.5]
+softmax  = [0.64, 0.24, 0.12]   ← sum = 1.0
+```
+
+The formula for each element:
+
+```
+softmax(xᵢ) = eˣⁱ / Σ eˣʲ
+```
+
+Which means: exponentiate each score, then divide by the sum of all exponentiated scores.
+
+Why `e`? Because it's differentiable everywhere (meaning gradients always flow), and it amplifies differences between scores in a smooth, continuous way.
+
+Softmax appears in two places in transformers:
+1. **Attention weights** — converts raw dot product scores into attention probabilities
+2. **Final output layer** — converts the model's raw output into token probabilities ("what's the next word?")
+
+### Sigmoid — squishing to 0-1
+
+Less used in modern transformers but you'll encounter it. Takes any number and squishes it between 0 and 1:
+
+```
+σ(x) = 1 / (1 + e⁻ˣ)
+
+σ(-∞) ≈ 0
+σ(0)  = 0.5
+σ(∞)  ≈ 1
+```
+
+Useful when you need a probability for a single binary decision. Softmax is for choosing between many options; sigmoid is for yes/no decisions.
+
+---
+
+## 7. LayerNorm — keeping numbers stable
+
+**Layer Normalization** is a technique applied throughout the transformer after each sublayer. The idea is simple: keep the numbers in a stable, well-behaved range so gradients flow properly and training doesn't explode.
+
+Here's the problem it solves. As vectors pass through many matrix multiplications and activations, the numbers can drift — some dimensions blow up to huge values, others shrink to near zero. This causes:
+- Large values → softmax collapse → gradient vanishing
+- Wildly different scales between dimensions → some dimensions dominate, others are ignored
+
+LayerNorm fixes this by normalizing each vector to have **mean ≈ 0** and **standard deviation ≈ 1**:
+
+```
+For a vector x = [x₁, x₂, ..., xₙ]:
+
+1. Compute mean:   μ = (x₁ + x₂ + ... + xₙ) / n
+2. Compute std:    σ = sqrt(average of (xᵢ - μ)²)
+3. Normalize:      x̂ᵢ = (xᵢ - μ) / σ
+4. Scale + shift:  yᵢ = γ × x̂ᵢ + β   ← γ and β are learned
+```
+
+Steps 1-3 bring all values to a standard range. Step 4 lets the model learn to scale and shift that range if it needs to — the γ and β are learned parameters.
+
+After LayerNorm, the vector is well-scaled. Softmax won't collapse. Gradients will flow. Training stays stable.
+
+In the transformer it appears after every sublayer:
+
+```
+output = LayerNorm(x + Sublayer(x))
+         ↑ normalize after the residual connection
+```
+
+---
+
+## 8. Tokens — not words
+
+This one trips up a lot of people. The transformer doesn't operate on words. It operates on **tokens**.
+
+### What is a token?
+
+A token is a chunk of text — but not necessarily a whole word. Modern tokenizers (like BPE — Byte Pair Encoding) split text into subword units:
+
+```
+"transformers"  →  ["transform", "ers"]       ← 2 tokens
+"unbelievable"  →  ["un", "believ", "able"]   ← 3 tokens
+"cat"           →  ["cat"]                    ← 1 token
+"GPT"           →  ["G", "PT"]                ← 2 tokens (maybe)
+"the"           →  ["the"]                    ← 1 token
+```
+
+Why not just use whole words? Two reasons:
+
+**1. Vocabulary size.** English has hundreds of thousands of words. If each word is a token, your embedding table (the lookup table mapping tokens to vectors) becomes enormous. With subword tokens, you can cover all of English with ~50,000 tokens.
+
+**2. Unknown words.** New words, names, slang, code — whole-word tokenizers break on anything not in their vocabulary. Subword tokenizers can handle anything by splitting it into known pieces.
+
+### Tokens are what get embedded
+
+When you feed text into a transformer:
+
+```
+"I love cats"
+     ↓ tokenizer
+["I", "love", "cat", "s"]     ← tokens (maybe)
+     ↓ embedding lookup
+[v₁, v₂, v₃, v₄]             ← each token → 512-dim vector
+     ↓ transformer
+output vectors
+```
+
+Every "word" in the transformer article is really a "token". They're usually the same for common English words, but for rare words, names, code, or other languages — one word might become 3-5 tokens.
+
+### Context window = token limit
+
+The "context window" of a model (e.g. Claude: 200k tokens, GPT-4: 128k tokens) is the maximum number of tokens the model can process at once. It's not characters or words — it's tokens. A typical English word is ~1.3 tokens on average, so 100k tokens ≈ 75k words ≈ a full novel.
+
+Why is there a limit? Because attention is computed between every pair of tokens. For a sequence of N tokens, attention requires N² computations. At 100k tokens, that's 10 billion attention scores. Memory and compute become the bottleneck.
+
+---
+
+## 9. Parameters vs hyperparameters
+
+These two words sound similar but mean completely different things.
+
+### Parameters — what the model learns
+
+**Parameters** are the numbers inside the model that get updated during training. Every entry in every weight matrix is a parameter.
+
+```
+Wq matrix: 512 × 64 = 32,768 parameters
+Wk matrix: 512 × 64 = 32,768 parameters
+Wv matrix: 512 × 64 = 32,768 parameters
+...
+```
+
+GPT-4 has ~1.8 trillion parameters. All of them start random. All of them get updated during training. The model "learns" by having its parameters converge to values that produce correct outputs.
+
+When someone says "a 7B model", they mean 7 billion parameters.
+
+### Hyperparameters — what you set before training
+
+**Hyperparameters** are the settings you choose before training starts. The model doesn't learn them — you decide them.
+
+Examples in the transformer:
+- **d_model = 512** — the dimension of word embeddings
+- **Number of heads = 8** — how many attention heads
+- **Number of layers = 6** — how many encoder/decoder blocks
+- **Learning rate = 0.0001** — how large each weight update is
+- **Batch size = 64** — how many training examples per update
+
+These are design choices. Change them and you get a different model — maybe better, maybe worse. Finding good hyperparameters is a lot of trial and error (and expensive compute).
+
+The learning rate is the most sensitive one. Too high and the model overshoots the good solution and diverges. Too low and training takes forever or gets stuck.
+
+---
+
+## 10. The encoder-decoder split — BERT vs GPT vs the original paper
+
+The original transformer paper uses an **encoder-decoder** architecture. But most models you've heard of only use half of it. Understanding why requires knowing what each half does.
+
+### Encoder — understanding input
+
+The encoder reads the full input sequence and produces rich contextual representations of every token. It uses **bidirectional** attention — every token can look at every other token in both directions (left and right).
+
+```
+Input:  "The bank was closed"
+        ↓ encoder
+        [v_The, v_bank, v_was, v_closed]   ← each vector now contains
+                                              context from the whole sentence
+```
+
+"bank" in the encoder's output has already absorbed information from "closed" (to its right) and "The" (to its left). It understands the full context.
+
+**Best for:** Tasks where you need to understand text — classification, question answering, search/retrieval. BERT is encoder-only.
+
+### Decoder — generating output
+
+The decoder generates text one token at a time. It uses **masked (causal) attention** — when generating token N, it can only look at tokens 1 through N-1. It can't see the future.
+
+```
+Generating: "The cat sat"
+            ↓
+token 1: generate "The" (no context)
+token 2: generate "cat" (can see "The")
+token 3: generate "sat" (can see "The cat")
+token 4: generate ??? (can see "The cat sat")
+```
+
+Why mask the future? Because during training, you show the model the full target sentence, but you want it to learn to predict each word from only what came before. If it could see the future, it would just copy — no learning.
+
+**Best for:** Generating text. GPT, Claude, Gemini, LLaMA are all decoder-only.
+
+### Encoder-decoder — translating between sequences
+
+The original paper is encoder-decoder because it was designed for machine translation. The encoder reads the full source language sentence (understanding mode). The decoder generates the target language sentence one token at a time (generation mode), using cross-attention to refer back to the encoder's output.
+
+```
+"The cat sat"  →  encoder  →  [rich representations]
+                                      ↓ cross-attention
+                              decoder generates: "Le chat s'est assis"
+```
+
+**Best for:** Tasks where input and output are different sequences — translation, summarization, question answering with long context. T5 is encoder-decoder.
+
+---
+
+## 11. How the decoder produces a word
+
+This is the gap I noticed in the transformer article — it explains everything up to "the decoder produces output vectors" but never shows how those vectors become actual words.
+
+Here's the final step.
+
+After all the attention and feed-forward layers, the decoder produces a vector for the current position. This vector is 512-dimensional (or whatever d_model is).
+
+Then:
+
+**Step 1 — Linear projection**
+
+Multiply by a final weight matrix that maps 512 dimensions → vocabulary size (e.g. 50,000):
+
+```
+output_vector (512d)
+      ↓ × W_final (512 × 50000)
+logits (50000d)    ← one score per token in vocabulary
+```
+
+These 50,000 numbers are called **logits** — raw, unnormalized scores. A high logit for token 7432 means "the model thinks the next word is probably token 7432".
+
+**Step 2 — Softmax**
+
+Apply softmax to convert logits into probabilities:
+
+```
+logits   = [2.1, 0.3, 8.4, ...]   ← 50,000 numbers
+softmax  = [0.001, 0.0002, 0.89, ...]   ← probabilities, sum = 1.0
+```
+
+**Step 3 — Sample or take max**
+
+Either:
+- **Greedy**: pick the token with the highest probability
+- **Sampling**: randomly sample from the distribution (adds variety)
+- **Top-k / Top-p**: only sample from the top-k tokens or top probability mass
+
+This is why LLMs don't always give the same answer — if you're sampling rather than being greedy, there's randomness in which token gets chosen. The **temperature** parameter controls how "peaked" the distribution is before sampling — high temperature = more random, low temperature = more deterministic.
+
+**Step 4 — Repeat**
+
+Append the chosen token to the sequence, feed it back into the decoder, and generate the next token. Repeat until you hit a stop token or reach max length.
+
+This is why LLM generation is sequential — each token depends on the previous ones. You can't parallelize generation (you can parallelize training, because you have the full target sequence ahead of time).
+
+---
+
+## 12. "Shifted right" — why the decoder input is offset
+
+In the transformer architecture diagram you'll see "outputs (shifted right)" as the decoder input. This confused me for a while.
+
+Here's what it means.
+
+During **training**, you have a complete input-output pair, e.g.:
+
+```
+Input (encoder):   "The cat sat"
+Target (decoder):  "Le chat s'est assis"
+```
+
+To train the decoder efficiently, you feed the full target sequence in at once — but shifted one position to the right:
+
+```
+Decoder input:   [<start>, "Le", "chat", "s'est"]
+Decoder target:  ["Le",    "chat", "s'est", "assis"]
+```
+
+Position 1 sees `<start>`, should predict "Le"
+Position 2 sees "Le", should predict "chat"
+Position 3 sees "Le chat", should predict "s'est"
+...
+
+The shift ensures that when predicting token N, the decoder only has access to tokens 0 through N-1. Combined with masking, this means the decoder can't cheat by looking at the answer it's supposed to predict.
+
+At **inference** (generation), there's no target sequence — you start with `<start>` and generate one token at a time. The "shifted right" setup is purely a training trick.
+
+---
+
+## 13. Test yourself
+
+Before you go read the transformer article, make sure you can answer these:
+
+**Vectors and matrices:**
+- What is a vector? What does "512-dimensional" mean?
+- What does matrix multiplication produce?
+- What is a dot product measuring?
+
+**Layers:**
+- What does one layer actually do, step by step?
+- Why can't you just use one big layer instead of stacking many?
+- What does it mean when someone says "early layers stop learning"?
+
+**Calculus basics:**
+- What is a derivative telling you?
+- Why does a near-zero derivative break training?
+
+**Activation functions:**
+- What does ReLU do to negative numbers? Positive numbers?
+- Why do we need activation functions at all?
+- What does softmax produce and what are its inputs?
+
+**Normalization:**
+- What problem does LayerNorm solve?
+- What does it mean for a vector to have mean=0, std=1?
+
+**Tokens:**
+- Why are tokens not the same as words?
+- What is a context window?
+
+**Architecture:**
+- What's the difference between an encoder and a decoder?
+- Why is GPT decoder-only and BERT encoder-only?
+- What are logits?
+
+**Parameters:**
+- What's the difference between a parameter and a hyperparameter?
+- What does "a 7B model" mean?
+
+If you can answer all of these, the transformer article will make complete sense. Go read it.
+
+→ **[Transformers: From Zero to the Paper](/blog/transformers-from-scratch)**
+
+---
+
+*Last updated: March 2026.*

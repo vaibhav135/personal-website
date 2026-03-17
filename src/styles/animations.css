@@ -79,6 +79,582 @@
   animation-delay: calc(var(--i, 0) * 80ms);
 }
 
+/* ============================================
+   Interactive Animation Components
+   ============================================ */
+
+/* --- Shared keyframes --- */
+@keyframes pulse-border {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50%       { box-shadow: 0 0 0 3px currentColor; }
+}
+
+@keyframes flow-in {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pop-in {
+  0%   { opacity: 0; transform: scale(0.8); }
+  70%  { transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* ============================================
+   RNN vs Transformer
+   ============================================ */
+
+.rnn-vs-tf {
+  background: var(--bg-dark);
+  border: 1px solid var(--current-line);
+  border-radius: 6px;
+  padding: 1.25rem;
+  margin: 1.5rem 0;
+  font-size: 0.85rem;
+}
+
+.rnn-vs-tf__desc {
+  color: var(--comment);
+  font-style: italic;
+  margin-bottom: 1rem !important;
+}
+
+.rnn-vs-tf__panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.rnn-vs-tf__panel {
+  background: var(--bg);
+  border: 1px solid var(--current-line);
+  border-radius: 4px;
+  padding: 0.75rem;
+}
+
+.rnn-vs-tf__panel-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.rnn-vs-tf__panel-title span {
+  font-weight: 400;
+  font-style: italic;
+  color: var(--comment);
+  margin-left: 0.3rem;
+}
+
+.rnn-vs-tf__panel-title--rnn { color: var(--orange); }
+.rnn-vs-tf__panel-title--tf  { color: var(--cyan); }
+
+.rnn-vs-tf__words {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: nowrap;
+  margin-bottom: 0.6rem;
+  overflow-x: auto;
+}
+
+.rnn-vs-tf__word-col {
+  display: flex;
+  align-items: center;
+}
+
+.rnn-vs-tf__word {
+  font-size: 0.78rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: 3px;
+  border: 1px solid var(--current-line);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.rnn-vs-tf__word--idle    { color: var(--comment); background: transparent; }
+.rnn-vs-tf__word--waiting { color: var(--comment); background: transparent; opacity: 0.4; }
+.rnn-vs-tf__word--active  {
+  color: var(--bg);
+  background: var(--orange);
+  border-color: var(--orange);
+  animation: pop-in 0.2s ease forwards;
+}
+.rnn-vs-tf__word--done    { color: var(--green); border-color: var(--green); background: rgba(80,250,123,0.08); }
+.rnn-vs-tf__word--flash   {
+  color: var(--bg);
+  background: var(--cyan);
+  border-color: var(--cyan);
+  animation: pop-in 0.2s ease forwards;
+}
+
+.rnn-vs-tf__arrow {
+  color: var(--comment);
+  font-size: 0.75rem;
+  padding: 0 0.2rem;
+  transition: color 0.3s ease;
+  flex-shrink: 0;
+}
+
+.rnn-vs-tf__arrow--done { color: var(--green); }
+
+.rnn-vs-tf__hidden-states {
+  display: flex;
+  gap: 0.3rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+
+.rnn-vs-tf__hidden {
+  font-size: 0.65rem;
+  color: var(--comment);
+  border: 1px solid var(--current-line);
+  border-radius: 2px;
+  padding: 0.1rem 0.3rem;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.rnn-vs-tf__hidden--active {
+  color: var(--orange);
+  border-color: var(--orange);
+  background: rgba(255,184,108,0.1);
+}
+
+.rnn-vs-tf__attention-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 0.3rem;
+}
+
+.rnn-vs-tf__attn-row {
+  display: flex;
+  gap: 2px;
+}
+
+.rnn-vs-tf__attn-cell {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--current-line);
+  transition: background 0.4s ease;
+  flex-shrink: 0;
+}
+
+.rnn-vs-tf__attn-cell--active {
+  background: var(--cyan);
+  opacity: 0.7;
+}
+
+.rnn-vs-tf__attn-cell--self {
+  background: var(--purple) !important;
+  opacity: 0.9;
+}
+
+.rnn-vs-tf__attn-label {
+  font-size: 0.68rem;
+  color: var(--comment);
+  font-style: italic;
+  margin-bottom: 0.5rem !important;
+}
+
+.rnn-vs-tf__time {
+  font-size: 0.75rem;
+  min-height: 1.2rem;
+}
+
+.rnn-vs-tf__time--idle    { color: var(--comment); }
+.rnn-vs-tf__time--running { color: var(--yellow); }
+.rnn-vs-tf__time--done    { color: var(--green); }
+
+.rnn-vs-tf__controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.rnn-vs-tf__btn {
+  background: var(--current-line);
+  border: 1px solid var(--comment);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rnn-vs-tf__btn--play {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--bg);
+  font-weight: 700;
+}
+
+.rnn-vs-tf__result {
+  color: var(--fg);
+  font-size: 0.82rem;
+  animation: flow-in 0.3s ease forwards;
+}
+
+@media (max-width: 600px) {
+  .rnn-vs-tf__panels { grid-template-columns: 1fr; }
+}
+
+/* ============================================
+   Weighted Sum Animation
+   ============================================ */
+
+.weighted-sum-anim {
+  background: var(--bg-dark);
+  border: 1px solid var(--current-line);
+  border-radius: 6px;
+  padding: 1.25rem;
+  margin: 1.5rem 0;
+  font-size: 0.85rem;
+}
+
+.weighted-sum-anim__desc {
+  color: var(--comment);
+  font-style: italic;
+  margin-bottom: 1rem !important;
+}
+
+.weighted-sum-anim__stage {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1.5rem;
+  align-items: start;
+  margin-bottom: 0.75rem;
+}
+
+.weighted-sum-anim__inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.weighted-sum-anim__input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: opacity 0.3s ease;
+}
+
+.weighted-sum-anim__input--active {
+  animation: flow-in 0.3s ease;
+}
+
+.weighted-sum-anim__word-box {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--current-line);
+  border-radius: 3px;
+  padding: 0.2rem 0.5rem;
+  min-width: 7rem;
+  transition: border-color 0.2s ease;
+}
+
+.weighted-sum-anim__word-text {
+  color: var(--fg);
+  font-size: 0.8rem;
+}
+
+.weighted-sum-anim__weight {
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-left: auto;
+}
+
+.weighted-sum-anim__flow-track {
+  flex: 1;
+  background: var(--current-line);
+  border-radius: 2px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.weighted-sum-anim__flow-bar {
+  height: 100%;
+  border-radius: 2px;
+  width: 0%;
+}
+
+.weighted-sum-anim__arrow {
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  transition: color 0.2s ease;
+}
+
+.weighted-sum-anim__output {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 120px;
+}
+
+.weighted-sum-anim__output-label {
+  font-size: 0.72rem;
+  color: var(--cyan);
+  text-align: center;
+}
+
+.weighted-sum-anim__output-box {
+  width: 60px;
+  height: 160px;
+  background: var(--bg);
+  border: 1px solid var(--current-line);
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column-reverse;
+  overflow: hidden;
+}
+
+.weighted-sum-anim__output-empty {
+  color: var(--comment);
+  font-size: 0.65rem;
+  text-align: center;
+  margin: auto;
+}
+
+.weighted-sum-anim__output-slice {
+  width: 100%;
+  transition: height 0.4s ease;
+  animation: pop-in 0.3s ease forwards;
+}
+
+.weighted-sum-anim__output-entry {
+  font-size: 0.68rem;
+  animation: flow-in 0.3s ease forwards;
+}
+
+.weighted-sum-anim__output-done {
+  font-size: 0.72rem;
+  color: var(--green);
+  text-align: center;
+  line-height: 1.4;
+  animation: flow-in 0.3s ease forwards;
+}
+
+.weighted-sum-anim__output-done span {
+  color: var(--comment);
+  font-style: italic;
+  font-size: 0.65rem;
+}
+
+.weighted-sum-anim__controls {
+  margin-top: 0.5rem;
+}
+
+.weighted-sum-anim__btn {
+  background: var(--current-line);
+  border: 1px solid var(--comment);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.weighted-sum-anim__btn--play {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--bg);
+  font-weight: 700;
+}
+
+@media (max-width: 600px) {
+  .weighted-sum-anim__stage { grid-template-columns: 1fr; }
+  .weighted-sum-anim__output { flex-direction: row; align-items: center; }
+}
+
+/* ============================================
+   Layer Forward Pass
+   ============================================ */
+
+.layer-fwd {
+  background: var(--bg-dark);
+  border: 1px solid var(--current-line);
+  border-radius: 6px;
+  padding: 1.25rem;
+  margin: 1.5rem 0;
+  font-size: 0.85rem;
+}
+
+.layer-fwd__desc {
+  color: var(--comment);
+  font-style: italic;
+  margin-bottom: 1rem !important;
+}
+
+.layer-fwd__pipeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 0.75rem;
+}
+
+.layer-fwd__step-col {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.layer-fwd__step {
+  background: var(--bg);
+  border: 1px solid var(--current-line);
+  border-radius: 4px;
+  padding: 0.6rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.layer-fwd__step:hover {
+  border-color: var(--comment);
+}
+
+.layer-fwd__step--active {
+  transition: all 0.25s ease;
+}
+
+.layer-fwd__step--done {
+  opacity: 0.7;
+}
+
+.layer-fwd__step--pending {
+  opacity: 0.4;
+}
+
+.layer-fwd__step-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--comment);
+  transition: color 0.2s ease;
+  min-width: 9rem;
+  flex-shrink: 0;
+}
+
+.layer-fwd__step-sublabel {
+  font-size: 0.72rem;
+  color: var(--comment);
+  font-style: italic;
+  flex: 1;
+}
+
+.layer-fwd__bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.layer-fwd__bar {
+  width: 8px;
+  border-radius: 1px;
+  min-height: 2px;
+}
+
+.layer-fwd__connector {
+  color: var(--current-line);
+  font-size: 1rem;
+  text-align: center;
+  padding: 0.1rem 0;
+  transition: color 0.3s ease;
+}
+
+.layer-fwd__connector--active {
+  color: var(--purple);
+}
+
+.layer-fwd__desc-panel {
+  background: var(--bg);
+  border: 1px solid var(--current-line);
+  border-radius: 4px;
+  padding: 0.6rem 0.75rem;
+  min-height: 3rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.layer-fwd__desc-title {
+  font-weight: 700;
+  font-size: 0.82rem;
+  flex-shrink: 0;
+}
+
+.layer-fwd__desc-text {
+  color: var(--fg);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.layer-fwd__desc-hint {
+  color: var(--comment);
+  font-style: italic;
+  font-size: 0.8rem;
+}
+
+.layer-fwd__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.layer-fwd__btn {
+  background: var(--current-line);
+  border: 1px solid var(--comment);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.layer-fwd__btn--play {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--bg);
+  font-weight: 700;
+}
+
+.layer-fwd__dots {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.layer-fwd__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--current-line);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.layer-fwd__dot--done   { background: var(--comment); }
+.layer-fwd__dot--active { transform: scale(1.4); }
+
 /* ---- Reduced Motion ---- */
 
 @media (prefers-reduced-motion: reduce) {
