@@ -235,6 +235,83 @@ a:hover {
   padding: 0;
 }
 
+/* Collapsible code viewer (CodeViewer.astro + CodeExpander.tsx) */
+.code-expander {
+  position: relative;
+  margin: 2rem 0;
+}
+
+.code-expander__viewport {
+  overflow: hidden;
+  border-radius: 6px;
+  transition: max-height 0.2s ease;
+}
+
+/* The highlighted block already ships its own <pre>; keep its styling
+   consistent with the blog's normal code blocks. */
+.code-expander__viewport pre {
+  margin: 0;
+  border-left: 3px solid var(--current-line);
+  border-radius: 6px;
+  padding: 1rem 1.2rem;
+  overflow-x: auto;
+}
+
+/* Fade-out over the bottom of the glimpse so it reads as "there's more". */
+.code-expander__fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 5rem;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, var(--bg-dark));
+  border-radius: 0 0 6px 6px;
+}
+
+.code-expander__toggle {
+  position: absolute;
+  left: 50%;
+  bottom: 0.75rem;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.8rem;
+  color: var(--purple);
+  background: var(--current-line);
+  border: 1px solid var(--comment);
+  border-radius: 6px;
+  padding: 0.35rem 0.9rem;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+
+.code-expander__toggle:hover {
+  border-color: var(--purple);
+  color: var(--orange);
+}
+
+/* When open, the button sits below the (now full-height) code rather than
+   floating over the fade. */
+.code-expander--open .code-expander__toggle {
+  position: static;
+  transform: none;
+  margin: 0.6rem auto 0;
+  display: flex;
+  width: fit-content;
+}
+
+.code-expander__chevron {
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+
+.code-expander--open .code-expander__chevron {
+  transform: rotate(90deg);
+}
+
 .blog-post strong {
   color: var(--orange);
   font-weight: 700;
