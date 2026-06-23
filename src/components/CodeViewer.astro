@@ -1,0 +1,27 @@
+---
+import { codeToHtml } from 'shiki';
+import CodeExpander from './CodeExpander.tsx';
+
+interface Props {
+  /** The source to display. */
+  code: string;
+  /** Shiki language id (e.g. "c", "rust", "ts"). */
+  lang?: string;
+  /** Collapsed glimpse height in px. */
+  previewHeight?: number;
+  /** Button label when collapsed. */
+  label?: string;
+}
+
+const { code, lang = 'plaintext', previewHeight = 180, label } = Astro.props;
+
+// Highlight at build time with the same Dracula theme used everywhere else.
+const html = await codeToHtml(code.trimEnd(), { lang, theme: 'dracula' });
+---
+
+<CodeExpander
+  client:visible
+  html={html}
+  previewHeight={previewHeight}
+  label={label}
+/>

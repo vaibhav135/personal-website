@@ -1,0 +1,473 @@
+---
+title: "Decoding SQLite Varints, Byte by Byte"
+description: "A line-by-line walkthrough of SQLite's hand-optimized varint decoder — the a/b/s register juggling, the p[-4] rescue, and why the simple version is usually the right one. Found while re-implementing SQLite from scratch."
+pubDate: 2026-06-23
+tags: ["database", "sqlite", "varint", "c", "systems", "deep-dive"]
+---
+
+import CodeViewer from '../../components/CodeViewer.astro';
+import { SQLITE_GET_VARINT } from './_sqlite-get-varint.ts';
+
+> I found this while re-implementing SQLite from scratch in [toydb](https://github.com/vaibhav135/toydb). Reading through the [SQLite file format docs](https://www.sqlite.org/fileformat.html), varints show up everywhere in the B-tree section — so I went into the actual SQLite codebase to see how decoding really works. This post is that function, taken apart byte by byte.
+
+Let me give you a bit of reference on what varints are in SQLite (yes, *in SQLite* — because they're a little different here than the generic varints you might have seen elsewhere). Here's the [official definition](https://www.sqlite.org/fileformat.html#:~:text=A%20variable%2Dlength,the%20later%20bytes.):
+
+> A variable-length integer or "varint" is a static Huffman encoding of 64-bit two's-complement integers that uses less space for small positive values. A varint is between 1 and 9 bytes in length. The varint consists of either zero or more bytes which have the high-order bit set followed by a single byte with the high-order bit clear, or nine bytes, whichever is shorter. The lower seven bits of each of the first eight bytes and all 8 bits of the ninth byte are used to reconstruct the 64-bit two's-complement integer. Varints are big-endian: bits taken from the earlier byte of the varint are more significant than bits taken from the later bytes.
+
+To simplify: in SQLite, a varint is between **1 and 9 bytes** long (that's the "var" in "variable length"). Each byte is 8 bits, but the **MSB** (most significant bit — the leftmost one) is a **continuation bit**, and the remaining **7 bits are the actual data**.
+
+Consider a 2-byte varint:
+
+```
+10011011  00001101
+^         ^
+MSB       MSB
+```
+
+The MSB of each byte tells us whether to keep reading the next byte or stop at the current one. `1` means "more bytes follow"; `0` means "this is the last byte."
+
+> **One thing worth knowing up front:** the definition says these encode *two's-complement* integers, but you'll notice this whole post only ever decodes small **positive** numbers. That's not an accident — negative numbers have their high bits set, so they don't compress, and they *always* take the full 9 bytes. That's exactly why the spec says "less space for small **positive** values." Short varints are always positive.
+
+Now let’s see how we decode these bytes into an integer — at least, how SQLite does it. Here it is in full; it’s long and deliberately gnarly, so it starts collapsed — take a peek, hit **Expand** if you want the whole thing in front of you, then we’ll go through it chunk by chunk (or should I say byte by byte).
+
+<CodeViewer code={SQLITE_GET_VARINT} lang="c" previewHeight={200} label="Expand full source (~140 lines)" />
+
+The `sqlite3GetVarint` function **returns the size** of the varint (1–9) and **writes the decoded 64-bit value into `*v`**. So it hands back two things: the value (through the pointer) and how many bytes it consumed (through the return).
+
+> **Fair warning before we dive in:** this code is *deliberately* ugly. It's hand-optimized for speed, which is why it looks the way it does. There's a much simpler way to write a varint decoder — I'll show it at the end. For now, just know that everything weird in here exists for performance, not correctness.
+
+Now let's dive in.
+
+---
+
+### i) Returning 1
+
+First, why do we have `u32 a, b, s;` — three separate 32-bit variables?
+
+Because of older CPUs whose register size is only 4 bytes (32 bits). To avoid doing 64-bit math on a 32-bit machine, the code splits the work across two variables: **all the even-position bytes go into `a`, and all the odd-position bytes go into `b`**. (As for `s` — we'll get to it later, I promise.)
+
+```c
+  if( ((signed char*)p)[0]>=0 ){
+    *v = *p;
+    return 1;
+  }
+```
+
+Here's the juicy part where we return size 1. As we said earlier: if the MSB is `1` we continue; if it's `0` we stop and take everything up to that point.
+
+Now, if you know a *bit* (LOL) about two's-complement: an MSB of `1` means the number is **negative**, and an MSB of `0` means it's **non-negative**. SQLite exploits this. It casts the byte to a `signed char`, so the MSB becomes a sign bit, and then just checks `>= 0`. That single comparison answers "is the high bit clear?" for free.
+
+So:
+
+- If the byte is **negative** (MSB = 1) → there's more to read → skip this block.
+- If the byte is **non-negative** (MSB = 0) → this single byte *is* the whole varint.
+
+**Case I:**
+
+Take the byte `00000110`. Its MSB is `0`, so the signed-char check passes. We store the **unsigned** value of `*p` into `v` (note: we store the plain byte, *not* the signed interpretation — they happen to be equal here, but the value written is always the unsigned one) and return 1.
+
+**Case II:**
+
+If the byte has MSB = 1, e.g. `10011010`, we skip this block and move to the next condition.
+
+---
+
+### ii) Returning 2
+
+```c
+  if( ((signed char*)p)[1]>=0 ){
+    *v = ((u32)(p[0]&0x7f)<<7) | p[1];
+    return 2;
+  }
+```
+
+This is similar to the previous condition, except we now check **position 1** instead of position 0 — we already know position 0's MSB was set (that's how we got here).
+
+If you haven't done bit manipulation in a while, this line might look daunting. Fret not — it's super duper easy peasy.
+
+`0x7f` is hex for 127, which in binary is `01111111`. We use it as a **mask** to clear the MSB of the previous byte (we know that byte's MSB is `1`, and as discussed, the MSB is a continuation flag, not data — so we throw it away).
+
+How do you clear the MSB? AND it with a mask that has `0` in that position. Since `1 & 0 = 0`, the top bit becomes `0` while the other 7 pass through untouched.
+
+So if byte 0 is `10010101`, then `& 0x7f` gives:
+
+```
+10010101
+01111111   <- 0x7f (127)
+--------
+00010101   <- result
+```
+
+The MSB got cleared, leaving the 7 data bits.
+
+Now the next move: shift those bits **left by 7** with the `<<` operator.
+
+```
+00010101                <- result so far
+
+0010101 0000000         <- after << 7
+```
+
+In a moment it'll be clear why we did this. Let's do the final step — OR with the byte at position 1.
+
+```c
+// say byte 1 is 00110101
+
+0010101 0000000         <- byte 0, shifted
+       0 0110101        <- byte 1
+
+0010101 0110101         <- combined
+^^^^^^^ ^^^^^^^
+ byte0   byte1
+```
+
+This is **big-endian** in action: byte 0 (the earlier byte) ends up in the *high* position, byte 1 in the *low* position. The shift made room for the second byte underneath the first.
+
+Since two bytes use fewer than 32 bits, the value fits comfortably in a `u32` — which is again friendly to those 32-bit CPUs. We assign the result to `v` and return 2.
+
+---
+
+### iii) Returning 3
+
+```c
+  a = ((u32)p[0])<<14;
+  b = p[1];
+  p += 2;
+  a |= *p;
+  /* a: p0<<14 | p2 (unmasked) */
+  if (!(a&0x80))
+  {
+    a &= SLOT_2_0;
+    b &= 0x7f;
+    b = b<<7;
+    a |= b;
+    *v = a;
+    return 3;
+  }
+```
+
+A few new things here. We've got our two 32-bit variables, `a` and `b` (you know why). But what's this `SLOT_2_0`? Great question — we'll get there.
+
+First: we know byte 0 and byte 1 have MSB = 1, and byte 2 has MSB = 0. So the order is `p0 → p1 → p2`. Remember the even/odd split: even bytes go to `a`, odd bytes go to `b`.
+
+So we take `p0`, shift it left by **14** (to make room for two more 7-bit groups below it), park `p1` in `b` for later, then advance the pointer to `p2` (that's what `p += 2` does) and OR it into `a`.
+
+```c
+// three bytes:
+10101011  11100001 00010101   // p0  p1  p2
+
+// pointer at p0. Shift p0 left by 14:
+10101011 0000000 0000000      // a
+
+// store p1 in b. Move pointer to p2, then a |= *p:
+10101011 0000000 0000000
+                 00010101     // p2
+
+// a becomes:
+10101011 0000000 0010101      // a (still unmasked)
+```
+
+Note we haven't cleared the MSBs of `p0` and `p1` yet.
+
+Next: `a & 0x80`. Why? `0x80 = 128 = 10000000` — a mask that isolates the MSB. This checks whether the byte we just read (`p2`, sitting in `a`'s low byte) is a continuation byte. Here it's not (MSB = 0), so `a & 0x80` is `0` (false). But it's wrapped in `!(a & 0x80)`, so the `!` flips it to **true** — we enter the block and head toward `return 3`.
+
+Before returning, we need to clean up: clear `p0`'s flag bit in `a`, clear `p1`'s flag bit in `b`, then combine them.
+
+```c
+// SLOT_2_0 = 0x001fc07f = a mask for (0x7f << 14) | 0x7f
+// SLOT_2_0 = 0000_0000_0001_1111_1100_0000_0111_1111
+
+// a &= SLOT_2_0  keeps only the 7-bit slots at positions 14 and 0,
+// clearing p0's flag bit (and everything in between):
+a = 0101011 0000000 0010101
+
+// b &= 0x7f  clears p1's flag bit:
+b = 11100001 & 01111111 = 01100001
+
+// shift b left by 7 so it lands in the MIDDLE slot when combined:
+b = b << 7 = 0 1100001 0000000
+
+// finally a |= b:
+0101011 0000000 0010101    (a)
+      0 1100001 0000000    (b)
+--------------------------
+0101011 1100001 0010101    (a)
+```
+
+That's `p0 << 14 | p1 << 7 | p2` — three 7-bit groups, 21 bits, assembled in big-endian order. Assign to `v`, return 3.
+
+> **About `SLOT_2_0`:** it's a precomputed "comb" mask. Written out in binary, it has a run of seven `1`s at bit 0 and another run of seven `1`s at bit 14 (with `0`s everywhere else). One AND scrubs the flag bits of *two* byte-slots at once. The name `SLOT_2_0` literally means "slots 2 and 0" — the positions it preserves.
+
+---
+
+### iv) Returning 4
+
+If you've followed this far, this one won't be challenging.
+
+```c
+  /* CSE1 from below */
+  a &= SLOT_2_0;
+  p++;
+  b = b<<14;
+  b |= *p;
+  /* b: p1<<14 | p3 (unmasked) */
+  if (!(b&0x80))
+  {
+    b &= SLOT_2_0;
+    /* moved CSE1 up */
+    /* a &= (0x7f<<14)|(0x7f); */
+    a = a<<7;
+    a |= b;
+    *v = a;
+    return 4;
+  }
+```
+
+From `return 3` we already have `a` and `b` (up through `p2`). Now we know `p2` *wasn't* the last byte, so we check `p3`.
+
+First, `a &= SLOT_2_0` (cleaning `a`'s slots). Then we advance the pointer to `p3` and fold it into `b`:
+
+```c
+// shift b left by 14 to make room for p3 at the bottom.
+// (Why a 14-bit gap? Because between p1 and p3 sits p2 — but p2
+//  lives over in `a`. We leave the gap so things line up when we OR
+//  a and b together at the end.)
+b = b << 14
+b = 11100001 0000000 0000000
+
+// fold in p3:
+b = b | p3
+b = 11100001 0000000 0010110    // assuming p3 has MSB = 0
+```
+
+Then we check `!(b & 0x80)` — does the latest byte (`p3`) have a clear MSB? If yes, we enter the block. (Here it does.)
+
+> **Rule of thumb:** for an **even** size we check `b`, and for an **odd** size we check `a`. Or just think in terms of which byte the pointer is currently on.
+
+Inside: `b &= SLOT_2_0` cleans `b`'s slots (here it scrubs `p1`'s flag bit — `p3`'s is already clear, but the mask handles both anyway). Then we shift `a` left by 7 to open a slot at the bottom for `p3`'s contribution, combine `a` and `b`, assign to `v`, and return 4. Easy peasy.
+
+---
+
+From here on we've got a good feel for the mechanics, so let's fast-track — I'll only call out what's *new* in each step.
+
+Ready? Let's gooooo.
+
+---
+
+### Returning 5
+
+This is where the interesting stuff happens. First, clear the flag bits in `b` (`p1` and `p3`, since `p3` turned out to be a continuation byte). `p4` is the new byte, so we advance the pointer. Then `a = a << 14` to make room for the next even byte.
+
+Now meet our third variable, `s`.
+
+So far, even bytes go into `a` and odd bytes into `b`, and we keep merging `b` back into `a`. But here's the problem: **`a` is only 32 bits**, and a 5-byte varint is `7 × 5 = 35 bits`. That doesn't fit! So we have to split the result into a **lower half** (`a`) and an **upper half** (`s`).
+
+(The maximum is 9 bytes = 64 bits: the first 8 bytes give `7 × 8 = 56` data bits, and the 9th byte contributes all 8 of its bits, for `56 + 8 = 64`.)
+
+```c
+  p++;
+  a = a<<14;
+  a |= *p;
+  /* a: p0<<28 | p2<<14 | p4 (unmasked) */
+  if (!(a&0x80))
+  {
+    b = b<<7;
+    a |= b;
+    s = s>>18;
+    *v = ((u64)s)<<32 | a;
+    return 5;
+  }
+```
+
+Here's the key insight, and it's the cleverest idea in the whole function:
+
+When we did `a = a << 14` to slide `p0` and `p2` up and make room for `p4`, **`p0`'s top 3 bits got shoved off the top edge of the 32-bit register and were lost.** That's the same 3 bits as `35 - 32 = 3` — the overflow that can't fit in `a`.
+
+But we don't actually lose them, because **just before that shift, we saved a copy of `a` into `s`** (`s = a`). That snapshot still has `p0`'s bits intact.
+
+So at the end:
+
+- `a` holds the **low 32 bits** (it was *allowed* to lose its top — it only ever needed to hold the low half).
+- `s` holds the **high bits** we rescued.
+
+`s` was holding `p0 << 14 | p2`, but we only want `p0`'s overflow bits. So `s >> 18` slides `s` down, discarding everything `a` already has and keeping just those 3 leftover bits of `p0`. Then `(u64)s << 32 | a` glues the high half on top of the low half — and we have the full value. Assign to `v`, return 5.
+
+> **Why `s >> 18` then `<< 32` instead of just shifting `s` left?** Because a left-shift *inside the 32-bit `s`* would push those precious bits off the top and lose them — the exact thing we're trying to avoid. So we slide them *down* to safety first (`>> 18`), then widen to 64 bits (`(u64)s`), and only *then* shift up (`<< 32`), where there's plenty of room. Net motion is 14 bits left, but routed so nothing falls off a narrow register.
+
+---
+
+### Returning 6
+
+```c
+  s = s<<7;
+  s |= b;
+  /* s: p0<<21 | p1<<14 | p2<<7 | p3 (masked) */
+
+  p++;
+  b = b<<14;
+  b |= *p;
+  /* b: p1<<28 | p3<<14 | p5 (unmasked) */
+  if (!(b&0x80))
+  {
+    a &= SLOT_2_0;
+    a = a<<7;
+    a |= b;
+    s = s>>18;
+    *v = ((u64)s)<<32 | a;
+    return 6;
+  }
+```
+
+If you understood `return 5`, this is gentle. Advance the pointer to `p5` — it's odd, so it goes in `b`. Shift `b` left by 14 (7 bits for `p4` already in `a`, 7 for `p5`). Check the continuation bit; if clear, enter.
+
+Clear the flag bits in `a`, shift `a` left by 7 to make room for `p5`, combine `a` and `b`. Then `s >> 18` (drop the bits now living in `a`), `s << 32`, combine with `a`, and return 6.
+
+Notice `s` itself is now *accumulating* — `s = s << 7; s |= b` builds it up the same way `a` and `b` get built. As the values grow past 32 bits, the high half needs more than a snapshot; it needs to keep collecting too.
+
+---
+
+### Returning 7
+
+```c
+  p++;
+  a = a<<14;
+  a |= *p;
+  /* a: p2<<28 | p4<<14 | p6 (unmasked) */
+  if (!(a&0x80))
+  {
+    a &= SLOT_4_2_0;
+    b &= SLOT_2_0;
+    b = b<<7;
+    a |= b;
+    s = s>>11;
+    *v = ((u64)s)<<32 | a;
+    return 7;
+  }
+```
+
+Advance to `p6`, store it in `a` (shift `a` by 14 first). Check the continuation bit, then clean the bits in both `a` and `b`, shift `b` by 7, and combine.
+
+The new thing: `s >> 11` instead of `>> 18`. Why 11? Because by now we're missing 8 more bits from `a` on top of the 3 from before — `3 + 8 = 11`. So we shift `s` right by 11 to drop the bits `a` already holds, then combine and return.
+
+---
+
+### Returning 8
+
+```c
+  /* CSE2 from below */
+  a &= SLOT_2_0;
+  p++;
+  b = b<<14;
+  b |= *p;
+  /* b: p3<<28 | p5<<14 | p7 (unmasked) */
+  if (!(b&0x80))
+  {
+    b &= SLOT_4_2_0;
+    a = a<<7;
+    a |= b;
+    s = s>>4;
+    *v = ((u64)s)<<32 | a;
+    return 8;
+  }
+```
+
+Same pattern, nothing new — except `a` needs 7 more bits to fit `p7`, so we shift it by 7 and lose 7 more bits to `s`. That means `s` shifts by `11 - 7 = 4` this time. Everything else is identical.
+
+---
+
+### Final Boss: Returning 9
+
+```c
+  p++;
+  a = a<<15;
+  a |= *p;
+  /* a: p4<<29 | p6<<15 | p8 (unmasked) */
+
+  b &= SLOT_2_0;
+  b = b<<8;
+  a |= b;
+
+  s = s<<4;
+  b = p[-4];
+  b &= 0x7f;
+  b = b>>3;
+  s |= b;
+
+  *v = ((u64)s)<<32 | a;
+
+  return 9;
+```
+
+Honestly, there's nothing bossy about this — except one genuinely weird line. The pointer is now at **`p8`** (the 9th byte).
+
+Ideally you'd expect this clean structure:
+
+```
+a = p0 […] p2 […] p4 […] p6 […]   = 56 bits
+b = […] p1 […] p3 […] p5 […] p7   = 56 bits
+```
+
+But across all those shifts, bits have been spilling off the registers and getting collected into `s`. Let's trace where everything actually ends up by the time we reach the 9th byte:
+
+- `s` started as `p0 […] p2`, and we did `s |= b` (with `b = p1 […] p3`) back before the `return 6` check. So `s = p0 p1 p2 p3`.
+- As `a` shifted left at each step (`return 5, 6, 7, 8`), it kept losing its top bits — those got absorbed into `s`.
+
+By the time the pointer reaches `p8`:
+
+```
+final a = p4 (only 3 bits) p5 p6 p7 p8   = 32 bits
+s       = p0 p1 p2 p3
+```
+
+See the problem? **We're missing 4 bits of `p4`.** `p4` has 7 data bits; 3 of them survived in `a`, but the top 4 got shifted off and were never saved in `s`.
+
+That's what `b = p[-4]` is for. Since the pointer is at `p8`, `p[-4]` walks **4 bytes back to the original `p4`** — still sitting untouched in the buffer. (A negative index is just `p + (-4)`; C lets you read backward like this.)
+
+```c
+s = s<<4;        // open 4 bits of room at the bottom of s
+b = p[-4];       // re-read the original p4 from the buffer
+b &= 0x7f;       // strip its flag bit -> 7 data bits
+b = b>>3;        // drop the low 3 bits (already in a); keep the top 4
+s |= b;          // patch those 4 high bits into s
+```
+
+So we rescue `p4`'s top 4 bits straight from the source buffer (the buffer is the backup), put them in `s`, and the remaining 3 bits of `p4` stay in `a`:
+
+```
+s = p0 p1 p2 p3 p4(top 4 bits)
+a = p4(bottom 3 bits) p5 p6 p7 p8
+```
+
+`(u64)s << 32 | a`, assign to `v`, return 9. Final boss defeated.
+
+---
+
+## So... is this really how you'd write it?
+
+**No** — and this is the most important takeaway. SQLite's decoder is a *speed hack*. Varints are read constantly (every rowid, every cell header), so SQLite unrolled the loop and split everything into 32-bit lanes to stay fast on 32-bit CPUs. That's where all the `a`/`b`/`s` juggling and the `p[-4]` rescue come from.
+
+The *normal* way to decode a varint is about eight lines:
+
+```rust
+fn read_varint(buf: &[u8]) -> (u64, usize) {
+    let mut result: u64 = 0;
+    for (i, &byte) in buf.iter().take(9).enumerate() {
+        if i == 8 {
+            // 9th byte: all 8 bits are data
+            result = (result << 8) | byte as u64;
+            return (result, 9);
+        }
+        result = (result << 7) | (byte & 0x7f) as u64;
+        if byte & 0x80 == 0 {
+            return (result, i + 1);
+        }
+    }
+    (result, 9)
+}
+```
+
+That's it. Accumulate into a **64-bit** value, shift in 7 bits per byte, stop when the continuation bit clears. Because we accumulate into a `u64` from the start, bits never fall off a too-small register — so the entire `s` / `a` / `p[-4]` circus simply disappears.
+
+The lesson buried in here: **the clever version isn't the "better" version — it's the better version for one specific, measured constraint** (32-bit CPUs, called millions of times). Strip that constraint and the simple loop wins on every axis that matters: same result, a tenth of the code, and you can actually read it six months later.
+
+So when you build your own thing, write the loop. Reach for SQLite's monster only when a profiler tells you this exact function is your bottleneck — which, for almost all of us, it never will be.
