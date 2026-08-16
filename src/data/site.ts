@@ -1,6 +1,6 @@
 export const siteConfig = {
   name: 'Vaibhav Singh Bisht',
-  title: 'Founding Fullstack Engineer',
+  title: 'Software Engineer, Going Down the Stack',
   description: 'Founding engineer, open source contributor, and Neovim enthusiast. Building things that matter.',
   url: 'https://vaibhavbisht.dev',
   socials: {

@@ -3,6 +3,7 @@ export interface NavItem {
   filename: string;
   href: string;
   filetype: string;
+  newTab?: boolean;
 }
 
 export interface Experience {

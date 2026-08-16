@@ -18,6 +18,8 @@ const { currentFile } = Astro.props;
     {navItems.map((item, idx) => (
       <a
         href={item.href}
+        target={item.newTab ? '_blank' : undefined}
+        rel={item.newTab ? 'noopener' : undefined}
         class:list={[
           'sidebar__item',
           { 'sidebar__item--active': item.filename === currentFile },
