@@ -13,6 +13,7 @@ const filetypeColor: Record<string, string> = {
   lua: 'var(--purple)',
   bash: 'var(--green)',
   markdown: 'var(--orange)',
+  pdf: 'var(--red)',
 };
 ---
 
@@ -21,6 +22,8 @@ const filetypeColor: Record<string, string> = {
   {navItems.map((item) => (
     <a
       href={item.href}
+      target={item.newTab ? '_blank' : undefined}
+      rel={item.newTab ? 'noopener' : undefined}
       class:list={['tabline__tab', { 'tabline__tab--active': item.filename === currentFile }]}
       aria-current={item.filename === currentFile ? 'page' : undefined}
     >

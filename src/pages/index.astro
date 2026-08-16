@@ -3,7 +3,7 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
 import { siteConfig } from '../data/site';
 
 const menuItems = [
-  { href: '/about',      file: 'about.ts',        desc: 'Who I am',           icon: '>' },
+  { href: '/about',      file: 'about.md',        desc: 'Who I am',           icon: '>' },
   { href: '/blog',       file: 'blog/',            desc: 'My writing',         icon: '>' },
   { href: '/experience', file: 'experience.lua',   desc: 'Where I\'ve worked', icon: '>' },
   { href: '/contact',    file: 'contact.sh',       desc: 'Say hello',          icon: '>' },
@@ -18,8 +18,9 @@ const nameBanner = String.raw`██╗   ██╗ █████╗ ██╗
   ╚═══╝  ╚═╝  ╚═╝╚═╝╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝  ╚═══╝  `;
 
 // Cat faces — idle + per-menu-item reactions
-const catIdle = `    |\\__/,|   (\`\\
-  _.|o o  |_   ) )
+const catIdleBeforeEyes = `    |\\__/,|   (\`\\
+  _.|`;
+const catIdleAfterEyes = `  |_   ) )
 -(((---(((--------`;
 
 const catAbout = `    |\\__/,|   (\`\\
@@ -45,7 +46,7 @@ const catContact = `    |\\__/,|   (\`\\
     <div class="dash__art anim-fade-up" style="--i: 0" aria-hidden="true">
       <pre class="dash__art-name">{nameBanner}</pre>
       <div class="dash__art-cats">
-        <pre class="dash__art-cat dash__art-cat--idle">{catIdle}</pre>
+        <pre class="dash__art-cat dash__art-cat--idle">{catIdleBeforeEyes}<span class="cat-eyes"><span class="cat-eyes__closed">- -</span><span class="cat-eyes__open">o o</span></span>{catIdleAfterEyes}</pre>
         <pre class="dash__art-cat dash__art-cat--about">{catAbout}</pre>
         <pre class="dash__art-cat dash__art-cat--blog">{catBlog}</pre>
         <pre class="dash__art-cat dash__art-cat--experience">{catExperience}</pre>
@@ -70,10 +71,10 @@ const catContact = `    |\\__/,|   (\`\\
       ))}
     </nav>
 
-    <!-- Featured Post -->
-    <a href="/blog/hello-world" class="dash__featured anim-fade-up" style="--i: 9">
-      <span class="dash__featured-label">Start here</span>
-      <span class="dash__featured-file">hello-world.md</span>
+    <!-- Latest Post -->
+    <a href="/blog/blog-sqlite-varint" class="dash__featured anim-fade-up" style="--i: 9">
+      <span class="dash__featured-label">Latest writing</span>
+      <span class="dash__featured-file">blog-sqlite-varint.mdx</span>
     </a>
 
     <!-- Footer -->
@@ -128,6 +129,23 @@ const catContact = `    |\\__/,|   (\`\\
   .dash__art-cat {
     color: var(--cyan);
     line-height: 1.35;
+  }
+
+  .cat-eyes {
+    display: inline-block;
+    position: relative;
+    width: 3ch;
+  }
+
+  .cat-eyes__open {
+    position: absolute;
+    inset: 0;
+    animation: cat-blink 4s step-end infinite;
+  }
+
+  @keyframes cat-blink {
+    0%, 46%, 50%, 100% { opacity: 1; }
+    47%, 49% { opacity: 0; }
   }
 
   /* Hide all cat states except idle by default */
